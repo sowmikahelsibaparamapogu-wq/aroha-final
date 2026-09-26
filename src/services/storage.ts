@@ -167,6 +167,17 @@ export class StorageEngine {
     }
   }
 
+  public static async clearAllApplications(): Promise<void> {
+    try {
+      const db = await this.getDB();
+      const tx = db.transaction('applications', 'readwrite');
+      tx.objectStore('applications').clear();
+      localStorage.removeItem('aroha_cached_apps');
+    } catch (e) {
+      localStorage.removeItem('aroha_cached_apps');
+    }
+  }
+
   public static async getApplications(): Promise<Application[]> {
     try {
       const db = await this.getDB();

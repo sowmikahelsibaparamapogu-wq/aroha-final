@@ -212,7 +212,14 @@ export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {(filteredRanked || []).map((app, idx) => {
+              {filteredRanked.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold">
+                    No candidates currently on the merit roster for {selectedScheme}. Add a preset to ingest candidates and compute transparent rankings.
+                  </td>
+                </tr>
+              ) : (
+                filteredRanked.map((app, idx) => {
                 const rank = idx + 1;
                 const isSelected = rank <= slotLimit;
                 const meritScore = app.aiAnalysis?.meritScore || 85;
@@ -308,7 +315,8 @@ export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              })
+            )}
             </tbody>
           </table>
         </div>

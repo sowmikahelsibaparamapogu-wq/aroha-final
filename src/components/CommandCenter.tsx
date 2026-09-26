@@ -73,9 +73,21 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     ).length;
 
     const femaleCount = filteredApps.filter((a) => a.applicant?.gender === 'Female').length;
-    const femalePercent = total > 0 ? ((femaleCount / total) * 100).toFixed(1) : '34.2';
+    const femalePercent = total > 0 ? ((femaleCount / total) * 100).toFixed(1) : '0.0';
 
-    return { total, eligible, pending, rejected, selected, highRisk, femalePercent };
+    const pvtgCount = filteredApps.filter(
+      (a) =>
+        (a.applicant?.stCommunity || '').toLowerCase().includes('pvtg') ||
+        (a.aiAnalysis?.flags || []).some((f) => f.toLowerCase().includes('pvtg'))
+    ).length;
+    const pvtgPercent = total > 0 ? ((pvtgCount / total) * 100).toFixed(1) : '0.0';
+
+    const dbtCount = filteredApps.filter(
+      (a) => a.status === 'dbt_active' || a.status === 'approved' || a.status === 'merit_listed'
+    ).length;
+    const dbtPercent = total > 0 ? ((dbtCount / total) * 100).toFixed(1) : '0.0';
+
+    return { total, eligible, pending, rejected, selected, highRisk, femalePercent, pvtgPercent, dbtPercent };
   }, [filteredApps]);
 
   const handleRefresh = () => {
@@ -130,22 +142,22 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       </div>
 
       {/* Intake vs Preset Upload Status Banner */}
-      {!isPresetUploaded ? (
+      {!isPresetUploaded || stats.total === 0 ? (
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white font-black text-xs uppercase tracking-wider border border-white/30">
-                STAGE 0: INTAKE ACTIVE
+                BLANK INTAKE MODE
               </span>
               <span className="text-xs font-bold text-white/90">
-                Results Not Prebuilt (Awaiting Preset Upload)
+                Zero False Data Loaded (Awaiting Preset Ingestion)
               </span>
             </div>
             <h3 className="text-lg sm:text-xl font-black text-white">
-              Initial Baseline Loaded ({stats.total} Staged, 4+ Ingestion Pending)
+              System Ready for Preset Intake ({stats.total} Ingested)
             </h3>
             <p className="text-xs text-white/90 max-w-2xl leading-relaxed">
-              Before uploading a preset, results are not prebuilt. Upload a preset scenario or custom JSON file to ingest remaining applications, run statutory rule checks, and update results in each tab and portal.
+              No false or pre-populated mock data is shown. Click "+ New Preset" to configure statutory parameters and ingest candidate dossiers one by one across India's 36 States and Union Territories.
             </p>
           </div>
 
@@ -155,7 +167,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             className="px-5 py-3 rounded-2xl bg-white hover:bg-slate-50 text-emerald-950 font-black text-xs transition cursor-pointer shadow-lg hover:scale-105 shrink-0 flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-emerald-600" />
-            <span>⚡ Upload Preset & Compute Results</span>
+            <span>➕ Add New Preset</span>
           </button>
         </div>
       ) : (
@@ -210,12 +222,12 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             {stats.total.toLocaleString()}
           </div>
           <div className="text-xs font-black text-indigo-600 mt-2 flex items-center gap-1">
-            {!isPresetUploaded ? (
-              <span className="text-amber-700 font-bold">4+ to be added</span>
+            {stats.total === 0 ? (
+              <span className="text-amber-700 font-bold">Awaiting preset</span>
             ) : (
               <>
                 <TrendingUp className="w-3.5 h-3.5" />
-                <span>All Ingested</span>
+                <span>{stats.total} Ingested</span>
               </>
             )}
           </div>
@@ -230,11 +242,11 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-black text-emerald-700">
-            {isPresetUploaded ? stats.eligible.toLocaleString() : 'Pending'}
+            {stats.eligible.toLocaleString()}
           </div>
           <div className="text-xs font-black text-emerald-600 mt-2">
-            {isPresetUploaded
-              ? `${stats.total > 0 ? ((stats.eligible / stats.total) * 100).toFixed(0) : 0}% compliance`
+            {stats.total > 0
+              ? `${((stats.eligible / stats.total) * 100).toFixed(0)}% compliance`
               : 'Awaiting preset'}
           </div>
         </div>
@@ -251,7 +263,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             {stats.pending.toLocaleString()}
           </div>
           <div className="text-xs font-black text-amber-600 mt-2">
-            {!isPresetUploaded ? 'Intake Staging' : '4.2d Turnaround'}
+            {stats.total === 0 ? 'Intake Staging' : 'In Verification'}
           </div>
         </div>
 
@@ -264,10 +276,10 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-black text-violet-700">
-            {isPresetUploaded ? stats.selected.toLocaleString() : '0'}
+            {stats.selected.toLocaleString()}
           </div>
           <div className="text-xs font-black text-violet-600 mt-2">
-            {isPresetUploaded ? 'Allocated Slots' : 'Awaiting preset'}
+            {stats.total > 0 ? 'Allocated Slots' : 'Awaiting preset'}
           </div>
         </div>
 
@@ -280,10 +292,10 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-black text-cyan-700">
-            {isPresetUploaded ? stats.rejected.toLocaleString() : '0'}
+            {stats.rejected.toLocaleString()}
           </div>
           <div className="text-xs font-black text-cyan-600 mt-2">
-            {isPresetUploaded ? 'Audit Preserved' : 'Intake clean'}
+            {stats.total > 0 ? 'Audit Preserved' : 'Intake clean'}
           </div>
         </div>
 
@@ -296,10 +308,10 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             </div>
           </div>
           <div className="text-3xl sm:text-4xl font-black text-rose-600">
-            {isPresetUploaded ? stats.highRisk.toLocaleString() : 'Pending'}
+            {stats.highRisk.toLocaleString()}
           </div>
           <div className="text-xs font-black text-rose-600 mt-2">
-            {isPresetUploaded ? 'Human Audit' : 'Scan pending'}
+            {stats.total > 0 ? 'Human Audit' : 'Scan pending'}
           </div>
         </div>
       </div>
@@ -322,7 +334,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
           </div>
           <div className="flex justify-between text-xs font-black text-white/90">
             <span>Mandate: 30.0%</span>
-            <span>+{ (parseFloat(stats.femalePercent) - 30).toFixed(1) }%</span>
+            <span>{stats.total > 0 ? `${(parseFloat(stats.femalePercent) - 30).toFixed(1)}%` : 'Awaiting preset'}</span>
           </div>
         </div>
 
@@ -331,15 +343,18 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-black">PVTG Enrollment</h3>
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black border border-white/30">
-              14.8% Active
+              {stats.pvtgPercent}% Active
             </span>
           </div>
           <div className="w-full bg-white/25 rounded-full h-3.5 overflow-hidden mb-3">
-            <div className="bg-white h-full rounded-full transition-all duration-700 shadow-sm" style={{ width: '74%' }} />
+            <div
+              className="bg-white h-full rounded-full transition-all duration-700 shadow-sm"
+              style={{ width: `${Math.min(100, (parseFloat(stats.pvtgPercent) / 20) * 100)}%` }}
+            />
           </div>
           <div className="flex justify-between text-xs font-black text-white/90">
             <span>Target: 20.0%</span>
-            <span>Special Drives</span>
+            <span>{stats.total > 0 ? `${stats.pvtgPercent}% enrolled` : 'Awaiting preset'}</span>
           </div>
         </div>
 
@@ -348,15 +363,18 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-black">Direct Benefit Transfer</h3>
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black border border-white/30">
-              99.2% Success
+              {stats.dbtPercent}% Sanctioned
             </span>
           </div>
           <div className="w-full bg-white/25 rounded-full h-3.5 overflow-hidden mb-3">
-            <div className="bg-white h-full rounded-full transition-all duration-700 shadow-sm" style={{ width: '99%' }} />
+            <div
+              className="bg-white h-full rounded-full transition-all duration-700 shadow-sm"
+              style={{ width: `${stats.dbtPercent}%` }}
+            />
           </div>
           <div className="flex justify-between text-xs font-black text-white/90">
             <span>Cycle: Monthly DBT</span>
-            <span>Zero Leakage</span>
+            <span>{stats.total > 0 ? 'Active pipeline' : 'Awaiting preset'}</span>
           </div>
         </div>
       </div>
@@ -552,59 +570,67 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredApps.slice(0, 6).map((app) => (
-                <tr key={app.id} className="hover:bg-slate-50/80 transition">
-                  <td className="py-3.5 px-4">
-                    <div className="font-black text-slate-800 text-sm">{app.applicant?.fullName}</div>
-                    <div className="text-[11px] text-slate-400 font-mono font-bold">{app.applicationNumber}</div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className={`px-3 py-1 rounded-xl text-[11px] font-black uppercase ${
-                      app.scheme === 'NFST'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                    }`}>
-                      {app.scheme}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-800">{app.applicant?.stCommunity}</div>
-                    <div className="text-[11px] text-slate-400">{app.applicant?.state}</div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                      app.status === 'approved' || app.status === 'merit_listed' || app.status === 'dbt_active'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : app.status === 'rejected'
-                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300'
-                    }`}>
-                      {app.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
-                        <div 
-                          className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${app.aiAnalysis?.overallConfidence || 90}%` }}
-                        />
-                      </div>
-                      <span className="font-black text-slate-700">{app.aiAnalysis?.overallConfidence || 90}%</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onSelectApplication?.(app.id)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 font-black text-xs border border-slate-200 transition cursor-pointer"
-                    >
-                      <span>Dossier</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
+              {filteredApps.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
+                    No candidate dossiers currently in verification stream. Click "➕ Add New Preset" to populate queue.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredApps.slice(0, 6).map((app) => (
+                  <tr key={app.id} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3.5 px-4">
+                      <div className="font-black text-slate-800 text-sm">{app.applicant?.fullName}</div>
+                      <div className="text-[11px] text-slate-400 font-mono font-bold">{app.applicationNumber}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-3 py-1 rounded-xl text-[11px] font-black uppercase ${
+                        app.scheme === 'NFST'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                      }`}>
+                        {app.scheme}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-slate-800">{app.applicant?.stCommunity}</div>
+                      <div className="text-[11px] text-slate-400">{app.applicant?.state}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        app.status === 'approved' || app.status === 'merit_listed' || app.status === 'dbt_active'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : app.status === 'rejected'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}>
+                        {app.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                          <div 
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${app.aiAnalysis?.overallConfidence || 90}%` }}
+                          />
+                        </div>
+                        <span className="font-black text-slate-700">{app.aiAnalysis?.overallConfidence || 90}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onSelectApplication?.(app.id)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 font-black text-xs border border-slate-200 transition cursor-pointer"
+                      >
+                        <span>Dossier</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

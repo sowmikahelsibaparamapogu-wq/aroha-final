@@ -223,7 +223,14 @@ export const ScrutinyQueue: React.FC<ScrutinyQueueProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {(filteredApps || []).map((app) => {
+              {filteredApps.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
+                    No dossiers currently in the scrutiny queue. Add a preset to ingest applications into verification streams.
+                  </td>
+                </tr>
+              ) : (
+                filteredApps.map((app) => {
                 const confidence = app.aiAnalysis?.overallConfidence || 85;
                 const requiresReview = app.aiAnalysis?.requiresHumanReview;
                 const hasDeficiency = app.status === 'flagged_deficiency';
@@ -384,7 +391,7 @@ export const ScrutinyQueue: React.FC<ScrutinyQueueProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

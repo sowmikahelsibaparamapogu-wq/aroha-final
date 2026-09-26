@@ -61,7 +61,6 @@ import { LiveParameterModal } from './components/LiveParameterModal';
 import { PresetUploadModal } from './components/PresetUploadModal';
 import { 
   BASELINE_APPLICATIONS, 
-  PENDING_INGESTION_APPLICATIONS, 
   evaluateAllWithPreset, 
   PresetScenario 
 } from './services/presetService';
@@ -97,10 +96,21 @@ export default function App() {
     return 'apply';
   });
 
-  // Preset Upload and Results State: Before preset upload, results are NOT prebuilt!
+  // Multiple Active Presets State (Starts completely empty with zero false data)
+  const [activePresets, setActivePresets] = useState<PresetScenario[]>(() => {
+    try {
+      const raw = localStorage.getItem('aroha_active_presets');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [isPresetUploaded, setIsPresetUploaded] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('aroha_preset_uploaded') === 'true';
+      const raw = localStorage.getItem('aroha_active_presets');
+      const presets = raw ? JSON.parse(raw) : [];
+      return presets.length > 0;
     } catch {
       return false;
     }
@@ -116,13 +126,16 @@ export default function App() {
 
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
 
-  // Applications Data State: Starts with baseline intake queue if preset not yet uploaded
+  // Applications Data State: STRICTLY EMPTY ([]) when no presets are added!
   const [applications, setApplications] = useState<Application[]>(() => {
     try {
-      const isUp = localStorage.getItem('aroha_preset_uploaded') === 'true';
-      return isUp ? SEEDED_APPLICATIONS : BASELINE_APPLICATIONS;
+      const rawPresets = localStorage.getItem('aroha_active_presets');
+      const presets: PresetScenario[] = rawPresets ? JSON.parse(rawPresets) : [];
+      if (presets.length === 0) return [];
+      const rawApps = localStorage.getItem('aroha_cached_apps');
+      return rawApps ? JSON.parse(rawApps) : [];
     } catch {
-      return BASELINE_APPLICATIONS;
+      return [];
     }
   });
 
@@ -155,22 +168,34 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Initialize DB on mount
+  // Initialize DB on mount: strictly empty if no presets added
   useEffect(() => {
     const initData = async () => {
-      const isUploaded = localStorage.getItem('aroha_preset_uploaded') === 'true';
-      if (isUploaded) {
-        const storedApps = await StorageEngine.getApplications();
-        if (storedApps && storedApps.length > 0) {
-          setApplications(storedApps);
+      try {
+        const rawPresets = localStorage.getItem('aroha_active_presets');
+        const presets: PresetScenario[] = rawPresets ? JSON.parse(rawPresets) : [];
+        if (presets.length > 0) {
+          const storedApps = await StorageEngine.getApplications();
+          if (storedApps && storedApps.length > 0) {
+            setApplications(storedApps);
+          } else {
+            const allApps = presets.flatMap((p) => p.additionalApplications || []);
+            const uniqueMap = new Map<string, Application>();
+            allApps.forEach((a) => uniqueMap.set(a.id, a));
+            const merged = Array.from(uniqueMap.values());
+            setApplications(merged);
+            await StorageEngine.saveApplications(merged);
+          }
+          setIsPresetUploaded(true);
         } else {
-          setApplications(SEEDED_APPLICATIONS);
-          await StorageEngine.saveApplications(SEEDED_APPLICATIONS);
+          // Strictly blank initially - zero false/mock data
+          setApplications([]);
+          setIsPresetUploaded(false);
+          await StorageEngine.clearAllApplications();
         }
-      } else {
-        // Before Preset Upload: start with baseline intake un-evaluated applications
-        setApplications(BASELINE_APPLICATIONS);
-        await StorageEngine.saveApplications(BASELINE_APPLICATIONS);
+      } catch {
+        setApplications([]);
+        setIsPresetUploaded(false);
       }
 
       const queued = await StorageEngine.getQueuedDocuments();
@@ -404,11 +429,17 @@ export default function App() {
     );
   };
 
-  // Handle Preset Scenario Apply: Ingests additional applications & updates all tabs and portals
-  const handleApplyPresetScenario = async (preset: PresetScenario) => {
-    const currentIds = new Set(applications.map((a) => a.id));
-    const newAppsToIngest = preset.additionalApplications.filter((a) => !currentIds.has(a.id));
-    const mergedPool = [...applications, ...newAppsToIngest];
+  // Handle Add Preset (One by One)
+  const handleAddPreset = async (preset: PresetScenario) => {
+    const existingPresets = activePresets.filter((p) => p.id !== preset.id);
+    const updatedPresets = [...existingPresets, preset];
+    setActivePresets(updatedPresets);
+
+    // Merge applications across all active presets
+    const allPresetsApps = updatedPresets.flatMap((p) => p.additionalApplications || []);
+    const uniqueMap = new Map<string, Application>();
+    allPresetsApps.forEach((a) => uniqueMap.set(a.id, a));
+    const mergedPool = Array.from(uniqueMap.values());
 
     const { updatedRules, evaluatedApplications } = evaluateAllWithPreset(
       mergedPool,
@@ -424,6 +455,7 @@ export default function App() {
     try {
       localStorage.setItem('aroha_preset_uploaded', 'true');
       localStorage.setItem('aroha_active_preset_name', preset.name);
+      localStorage.setItem('aroha_active_presets', JSON.stringify(updatedPresets));
     } catch {
       // ignore
     }
@@ -432,8 +464,50 @@ export default function App() {
 
     addToast(
       'success',
-      `Preset Applied: ${preset.name}`,
-      `Ingested ${newAppsToIngest.length} candidate dossiers & updated results across all tabs and portals.`
+      `Preset Added: ${preset.name}`,
+      `Ingested ${preset.additionalApplications.length} candidates. Total ${evaluatedApplications.length} active dossiers across India's 36 States & UTs.`
+    );
+  };
+
+  // Handle Remove Individual Preset
+  const handleRemovePreset = async (presetId: string) => {
+    const updatedPresets = activePresets.filter((p) => p.id !== presetId);
+    setActivePresets(updatedPresets);
+
+    if (updatedPresets.length === 0) {
+      await handleResetAllPresets();
+      return;
+    }
+
+    const allPresetsApps = updatedPresets.flatMap((p) => p.additionalApplications || []);
+    const uniqueMap = new Map<string, Application>();
+    allPresetsApps.forEach((a) => uniqueMap.set(a.id, a));
+    const mergedPool = Array.from(uniqueMap.values());
+
+    const latestPreset = updatedPresets[updatedPresets.length - 1];
+    const { updatedRules, evaluatedApplications } = evaluateAllWithPreset(
+      mergedPool,
+      latestPreset.parameters,
+      rules
+    );
+
+    setRules(updatedRules);
+    setApplications(evaluatedApplications);
+    setActivePresetName(latestPreset.name);
+
+    try {
+      localStorage.setItem('aroha_active_preset_name', latestPreset.name);
+      localStorage.setItem('aroha_active_presets', JSON.stringify(updatedPresets));
+    } catch {
+      // ignore
+    }
+
+    await StorageEngine.saveApplications(evaluatedApplications);
+
+    addToast(
+      'info',
+      'Preset Removed',
+      `Re-evaluated pipeline with remaining ${updatedPresets.length} preset(s) and ${evaluatedApplications.length} dossiers.`
     );
   };
 
@@ -446,46 +520,30 @@ export default function App() {
       femaleQuota: jsonData.parameters?.femaleQuota ?? 30,
     };
 
-    const presetName = jsonData.name || 'Custom Preset JSON';
-
+    const presetName = jsonData.name || 'Custom Uploaded Preset';
     const extraApps: Application[] = Array.isArray(jsonData.additionalApplications) && jsonData.additionalApplications.length > 0
       ? jsonData.additionalApplications
-      : PENDING_INGESTION_APPLICATIONS;
+      : [];
 
-    const currentIds = new Set(applications.map((a) => a.id));
-    const newAppsToIngest = extraApps.filter((a) => !currentIds.has(a.id));
-    const mergedPool = [...applications, ...newAppsToIngest];
+    const customPreset: PresetScenario = {
+      id: `preset_json_${Date.now()}`,
+      name: presetName,
+      badge: 'JSON Ingestion',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      category: 'Uploaded JSON Cohort',
+      description: jsonData.description || 'Uploaded custom JSON preset cohort.',
+      parameters: params,
+      additionalApplications: extraApps,
+      keyHighlights: [`Ingests ${extraApps.length} candidates from uploaded JSON`],
+    };
 
-    const { updatedRules, evaluatedApplications } = evaluateAllWithPreset(
-      mergedPool,
-      params,
-      rules
-    );
-
-    setRules(updatedRules);
-    setApplications(evaluatedApplications);
-    setIsPresetUploaded(true);
-    setActivePresetName(presetName);
-
-    try {
-      localStorage.setItem('aroha_preset_uploaded', 'true');
-      localStorage.setItem('aroha_active_preset_name', presetName);
-    } catch {
-      // ignore
-    }
-
-    await StorageEngine.saveApplications(evaluatedApplications);
-
-    addToast(
-      'success',
-      `Custom Preset Uploaded: ${presetName}`,
-      `Ingested ${newAppsToIngest.length} candidate dossiers & updated results across all tabs and portals.`
-    );
+    await handleAddPreset(customPreset);
   };
 
-  // Reset to Intake State (Before Preset Upload)
-  const handleResetToPreUploadState = async () => {
-    setApplications(BASELINE_APPLICATIONS);
+  // Reset to Blank State (0 Presets, Zero False Data)
+  const handleResetAllPresets = async () => {
+    setApplications([]);
+    setActivePresets([]);
     setRules(DEFAULT_SCHEME_RULES);
     setIsPresetUploaded(false);
     setActivePresetName(null);
@@ -493,16 +551,18 @@ export default function App() {
     try {
       localStorage.removeItem('aroha_preset_uploaded');
       localStorage.removeItem('aroha_active_preset_name');
+      localStorage.removeItem('aroha_active_presets');
+      localStorage.removeItem('aroha_cached_apps');
     } catch {
       // ignore
     }
 
-    await StorageEngine.saveApplications(BASELINE_APPLICATIONS);
+    await StorageEngine.clearAllApplications();
 
     addToast(
       'info',
-      'Reset to Intake State (Before Preset)',
-      'Results cleared. Baseline intake restored; awaiting preset upload.'
+      'Reset to Blank State',
+      'All presets and candidate dossiers cleared. System is in 100% clean intake state.'
     );
   };
 
@@ -559,7 +619,9 @@ export default function App() {
     setActiveTab(targetTab as PortalTab);
   };
 
-  const currentApplication = applications.find((a) => a.id === selectedAppId) || applications[0];
+  const currentApplication = (applications && applications.length > 0)
+    ? (applications.find((a) => a.id === selectedAppId) || applications[0])
+    : null;
 
   // If user is not logged in: Render minimal, realistic forest background login portal
   if (showAuthScreen) {
@@ -635,13 +697,13 @@ export default function App() {
                 type="button"
                 onClick={() => setIsPresetModalOpen(true)}
                 className={`px-4 py-2 rounded-2xl font-black transition cursor-pointer shadow-md flex items-center gap-1.5 ${
-                  isPresetUploaded
+                  activePresets.length > 0
                     ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-emerald-700/20'
                     : 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white shadow-amber-600/20 animate-pulse'
                 }`}
-                title="Upload preset scenario or custom JSON to ingest applications and calculate results"
+                title="Configure and add multiple presets one by one across India's 36 states"
               >
-                <span>{isPresetUploaded ? `✓ Preset: ${activePresetName || 'Active'}` : '📁 Upload Preset'}</span>
+                <span>{activePresets.length > 0 ? `⚙️ Presets (${activePresets.length} Active)` : '➕ New Preset'}</span>
               </button>
 
               {/* Dynamic Live Parameter Controller */}
@@ -671,6 +733,66 @@ export default function App() {
             </div>
           </div>
 
+          {/* Active Presets Multi-Ingestion Ribbon */}
+          <div className="mb-6 p-4 rounded-3xl border shadow-sm transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-white border-slate-200">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="text-xs font-black uppercase text-indigo-950 flex items-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${activePresets.length > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                Active Ingestion Presets:
+              </span>
+
+              {activePresets.length === 0 ? (
+                <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl">
+                  0 Presets Active • Blank Intake Mode (Zero False Data)
+                </span>
+              ) : (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {activePresets.map((p) => (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-950 px-2.5 py-1 rounded-xl text-xs font-bold shadow-2xs"
+                    >
+                      <span className="truncate max-w-[150px]">{p.name}</span>
+                      <span className="text-[10px] text-emerald-700 font-mono">
+                        (+{p.additionalApplications?.length || 0})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePreset(p.id)}
+                        className="text-slate-400 hover:text-rose-600 cursor-pointer ml-0.5"
+                        title="Remove preset"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                  <span className="text-xs text-slate-500 font-semibold ml-1">
+                    ({applications.length} total dossiers across India)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPresetModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-indigo-600 text-white font-black text-xs hover:from-emerald-500 hover:to-indigo-500 transition cursor-pointer shadow-xs flex items-center gap-1.5"
+              >
+                <span>➕ {activePresets.length > 0 ? 'Add Another Preset' : 'New Preset Option'}</span>
+              </button>
+              {activePresets.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetAllPresets}
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition cursor-pointer"
+                >
+                  Reset to Blank
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* VIEW SWITCHER FOR WORKSPACES & MODULES */}
           <div className="max-w-6xl mx-auto space-y-6">
             
@@ -684,10 +806,10 @@ export default function App() {
                 }}
                 onNavigateTab={(tab) => setActiveTab(tab as PortalTab)}
                 onUpdateParameters={handleUpdateParameters}
-                isPresetUploaded={isPresetUploaded}
+                isPresetUploaded={activePresets.length > 0}
                 activePresetName={activePresetName}
                 onOpenPresetModal={() => setIsPresetModalOpen(true)}
-                onResetToPreUploadState={handleResetToPreUploadState}
+                onResetToPreUploadState={handleResetAllPresets}
               />
             )}
 
@@ -699,6 +821,7 @@ export default function App() {
                   setSelectedAppId(id);
                   setActiveTab('profile_360');
                 }}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
               />
             )}
 
@@ -713,19 +836,30 @@ export default function App() {
             {/* Feature 4: Budget Forecasting Dashboard */}
             {activeTab === 'budget_forecast' && (
               <BudgetForecasting
-                isPresetUploaded={isPresetUploaded}
+                applications={applications}
+                isPresetUploaded={activePresets.length > 0}
                 onOpenPresetModal={() => setIsPresetModalOpen(true)}
               />
             )}
 
             {/* Feature 5: AI Executive Insights Panel */}
             {activeTab === 'executive_insights' && (
-              <ExecutiveInsights applications={applications} />
+              <ExecutiveInsights
+                applications={applications}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
             )}
 
             {/* Feature 6: Government Decision Support Center */}
             {activeTab === 'decision_support' && (
-              <DecisionSupportCenter applications={applications} />
+              <DecisionSupportCenter
+                applications={applications}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
             )}
 
             {/* Feature 7: Fraud & Risk Dashboard */}
@@ -736,13 +870,14 @@ export default function App() {
                   setSelectedAppId(id);
                   setActiveTab('profile_360');
                 }}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
               />
             )}
 
             {/* Feature 8: Applicant 360 Degree Profile */}
             {activeTab === 'profile_360' && (
               <Applicant360Profile
-                application={currentApplication}
+                application={currentApplication as Application}
                 allApplications={applications}
                 onSelectAnother={setSelectedAppId}
               />
@@ -756,12 +891,16 @@ export default function App() {
                   setSelectedAppId(id);
                   setActiveTab('profile_360');
                 }}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
               />
             )}
 
             {/* Feature 10: Officer Workload Dashboard */}
             {activeTab === 'officer_workload' && (
-              <OfficerWorkloadDashboard />
+              <OfficerWorkloadDashboard
+                applications={applications}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
             )}
 
             {/* Feature 11: Merit Ranking Leaderboard */}
@@ -769,7 +908,7 @@ export default function App() {
               <MeritRankingView
                 applications={applications}
                 onOpenApplication={(app) => setScrutinyModalApp(app)}
-                isPresetUploaded={isPresetUploaded}
+                isPresetUploaded={activePresets.length > 0}
                 onOpenPresetModal={() => setIsPresetModalOpen(true)}
               />
             )}
@@ -782,7 +921,7 @@ export default function App() {
             {/* Feature 13: Cross-Scheme Recommendation Cards */}
             {activeTab === 'cross_scheme' && (
               <CrossSchemeRecommender
-                application={currentApplication}
+                application={currentApplication || undefined}
                 onApplyAlternative={(scheme) => {
                   addToast('info', 'Scheme Selected', `Initiated application for ${scheme}.`);
                   setActiveTab('apply');
@@ -792,25 +931,31 @@ export default function App() {
 
             {/* Feature 14: Predictive Analytics Charts */}
             {activeTab === 'predictive_analytics' && (
-              <PredictiveAnalytics />
+              <PredictiveAnalytics
+                applications={applications}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
             )}
 
             {/* Feature 15: Application Version Timeline */}
             {activeTab === 'timeline' && (
               <VersionTimeline
-                applicationId={currentApplication.applicationNumber}
-                applicantName={currentApplication.applicant?.fullName}
+                applicationId={currentApplication?.applicationNumber || 'N/A'}
+                applicantName={currentApplication?.applicant?.fullName || 'N/A'}
               />
             )}
 
             {/* Feature 16: Side-by-Side Document Comparison Viewer */}
             {activeTab === 'doc_compare' && (
-              <DocumentComparisonViewer application={currentApplication} />
+              <DocumentComparisonViewer application={currentApplication || undefined} />
             )}
 
             {/* Feature 17: Automated MIS Report Generator */}
             {activeTab === 'mis_report' && (
-              <MISReportGenerator applications={applications} />
+              <MISReportGenerator
+                applications={applications}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
             )}
 
             {/* Feature 18: Bulk Verification Queue */}
@@ -934,15 +1079,15 @@ export default function App() {
         onApplyUpdate={handleUpdateParameters}
       />
 
-      {/* Preset Upload Modal: JSON file upload & curated scenarios */}
+      {/* Preset Upload Modal: multi-preset ingestion & curated scenarios */}
       <PresetUploadModal
         isOpen={isPresetModalOpen}
         onClose={() => setIsPresetModalOpen(false)}
-        isPresetUploaded={isPresetUploaded}
-        activePresetName={activePresetName}
-        onApplyPresetScenario={handleApplyPresetScenario}
+        activePresets={activePresets}
+        onAddPreset={handleAddPreset}
+        onRemovePreset={handleRemovePreset}
         onUploadCustomPresetJson={handleUploadCustomPresetJson}
-        onResetToPreUploadState={handleResetToPreUploadState}
+        onResetAllPresets={handleResetAllPresets}
       />
 
       {/* Floating Micro-Interaction Toast Notifications */}

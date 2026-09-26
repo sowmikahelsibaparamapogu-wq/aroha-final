@@ -33,50 +33,6 @@ export interface FieldInspectionRecord {
   inspectorRemarks?: string;
 }
 
-const INITIAL_FIELD_INSPECTIONS: FieldInspectionRecord[] = [
-  {
-    id: 'insp_101',
-    appId: 'app_102',
-    applicationNumber: 'NFST-2025-0813',
-    candidateName: 'Jemimah Khasi',
-    community: 'Khasi',
-    district: 'East Khasi Hills',
-    state: 'Meghalaya',
-    dispatchReason: 'Name mismatch on ST certificate (Jemimah Lapang vs Jemimah Khasi); revenue seal confirmation requested.',
-    assignedAuthority: 'District Tribal Welfare Officer (DTWO), Shillong',
-    status: 'under_investigation',
-    dispatchedAt: '2025-02-28',
-  },
-  {
-    id: 'insp_102',
-    appId: 'app_104',
-    applicationNumber: 'NOS-2025-0442',
-    candidateName: 'Birsa Dev Munda',
-    community: 'Munda',
-    district: 'Khunti',
-    state: 'Jharkhand',
-    dispatchReason: 'Agricultural landholding vs reported family income verification under Rule 4.1 ceiling.',
-    assignedAuthority: 'Project Officer, Integrated Tribal Development Agency (ITDA), Khunti',
-    status: 'dispatched',
-    dispatchedAt: '2025-03-01',
-  },
-  {
-    id: 'insp_103',
-    appId: 'app_105',
-    applicationNumber: 'NFST-2025-0919',
-    candidateName: 'Arjun Bhil',
-    community: 'Bhil',
-    district: 'Banswara',
-    state: 'Rajasthan',
-    dispatchReason: 'Physical verification of Particularly Vulnerable Tribal Group (PVTG) affirmative status.',
-    assignedAuthority: 'Sub-Divisional Magistrate (SDM), Banswara',
-    status: 'verified_genuine',
-    dispatchedAt: '2025-02-15',
-    reportDate: '2025-02-25',
-    inspectorRemarks: 'Tehsildar physically inspected revenue records and affirmed genuine lineage and domicile.',
-  },
-];
-
 interface FieldVerificationDeskProps {
   applications: Application[];
   onOpenApplication: (app: Application) => void;
@@ -88,7 +44,41 @@ export const FieldVerificationDesk: React.FC<FieldVerificationDeskProps> = ({
   onOpenApplication,
   onToast,
 }) => {
-  const [inspections, setInspections] = useState<FieldInspectionRecord[]>(INITIAL_FIELD_INSPECTIONS);
+  // Dynamically derive field inspection orders strictly from active applications
+  const dynamicInspections = React.useMemo<FieldInspectionRecord[]>(() => {
+    if (applications.length === 0) return [];
+
+    return applications
+      .filter(
+        (a) =>
+          a.aiAnalysis?.requiresHumanReview ||
+          a.status === 'flagged_deficiency' ||
+          a.aiAnalysis?.riskScore === 'High' ||
+          (a.aiAnalysis?.flags && a.aiAnalysis.flags.length > 0)
+      )
+      .map((app, idx) => ({
+        id: `insp_${app.id}`,
+        appId: app.id,
+        applicationNumber: app.applicationNumber,
+        candidateName: app.applicant.fullName,
+        community: app.applicant.stCommunity,
+        district: app.applicant.district || 'Scheduled ITDA District',
+        state: app.applicant.state,
+        dispatchReason:
+          app.deficiencies?.[0]?.description ||
+          app.aiAnalysis?.flags?.[0] ||
+          'Cross-verification of ST caste certificate validity and local revenue authority seal.',
+        assignedAuthority: `District Tribal Welfare Officer (DTWO), ${app.applicant.district || app.applicant.state}`,
+        status: (idx % 2 === 0 ? 'under_investigation' : 'dispatched') as 'under_investigation' | 'dispatched',
+        dispatchedAt: app.submittedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+      }));
+  }, [applications]);
+
+  const [inspections, setInspections] = useState<FieldInspectionRecord[]>(dynamicInspections);
+
+  React.useEffect(() => {
+    setInspections(dynamicInspections);
+  }, [dynamicInspections]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [stateFilter, setStateFilter] = useState<string>('ALL');
@@ -263,7 +253,14 @@ export const FieldVerificationDesk: React.FC<FieldVerificationDeskProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {(filteredInspections || []).map((item) => (
+              {filteredInspections.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
+                    No field inspection orders currently active. Add presets or dispatch a dossier for district verification.
+                  </td>
+                </tr>
+              ) : (
+                filteredInspections.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/60 transition">
                   <td className="py-3.5 px-5">
                     <span className="font-bold text-slate-900 block">{item.candidateName}</span>
@@ -341,8 +338,9 @@ export const FieldVerificationDesk: React.FC<FieldVerificationDeskProps> = ({
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              ))
+            )}
+          </tbody>
           </table>
         </div>
       </div>

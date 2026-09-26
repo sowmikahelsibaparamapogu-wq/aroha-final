@@ -44,8 +44,14 @@ export const StatusTracker: React.FC<StatusTrackerProps> = ({
 
   if (!currentApp) {
     return (
-      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-        <p className="text-sm text-slate-500">{t('noAppsFound')}</p>
+      <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm space-y-3">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto">
+          <FileText className="w-7 h-7" />
+        </div>
+        <h3 className="text-lg font-black text-slate-800">No Applications to Track (Blank Intake Mode)</h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">
+          No candidate dossier is currently active. Either submit a new scholarship application via the Apply form or add an evaluation preset to track progress.
+        </p>
       </div>
     );
   }

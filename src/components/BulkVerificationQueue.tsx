@@ -151,7 +151,14 @@ export const BulkVerificationQueue: React.FC<BulkVerificationQueueProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {pendingApps.map((app) => {
+              {pendingApps.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400 font-semibold">
+                    No pending applications currently in batch queue. Ingest a preset to process dossiers in batch.
+                  </td>
+                </tr>
+              ) : (
+                pendingApps.map((app) => {
                 const isChecked = selectedIds.includes(app.id);
                 return (
                   <tr
@@ -205,7 +212,7 @@ export const BulkVerificationQueue: React.FC<BulkVerificationQueueProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

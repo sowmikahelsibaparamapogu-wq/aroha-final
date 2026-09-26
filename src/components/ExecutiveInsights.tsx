@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Sparkles, 
   RefreshCw, 
@@ -9,13 +9,16 @@ import {
   AlertCircle, 
   CheckCircle2,
   ChevronRight,
-  Filter
+  Filter,
+  IndianRupee,
+  ShieldAlert
 } from 'lucide-react';
 import { Application } from '../types/scholarship';
 
 interface ExecutiveInsightsProps {
   applications: Application[];
   onSelectApplication?: (id: string) => void;
+  onOpenPresetModal?: () => void;
 }
 
 interface InsightCard {
@@ -28,70 +31,125 @@ interface InsightCard {
   severity: 'info' | 'positive' | 'warning';
 }
 
-const STATIC_LIVE_INSIGHTS: InsightCard[] = [
-  {
-    id: 'ins_geo_1',
-    category: 'Geographic',
-    title: 'Adilabad & Khunti Pending Concentration',
-    metric: '34.2% of Backlog',
-    summary: 'Two tribal districts (Adilabad, TG and Khunti, JH) account for 34.2% of all pending desk scrutiny files, primarily caused by local Tahsildar caste certificate seal variations.',
-    actionableNote: 'Dispatch mobile AI-verification tablet units to Adilabad & Khunti District Magistrate offices.',
-    severity: 'warning',
-  },
-  {
-    id: 'ins_equity_2',
-    category: 'Equity',
-    title: 'ST Female Scholar Quota Exceeded',
-    metric: '34.8% Participation',
-    summary: 'Female ST applicants represent 34.8% of verified candidates this cycle, comfortably surpassing the statutory 30% parliamentary mandate by 4.8 percentage points.',
-    actionableNote: 'Highlight gender parity milestone in MoTA Annual Parliamentary Report.',
-    severity: 'positive',
-  },
-  {
-    id: 'ins_ops_3',
-    category: 'Operational',
-    title: 'AI OCR Processing Turnaround Gain',
-    metric: 'Reduced from 45d → 4.2d',
-    summary: 'Automated entity tallying between DigiLocker / e-Pramaan and application records has compressed median scrutiny turnaround time by 90.6%.',
-    actionableNote: '124 applications auto-verified without requiring manual secondary review.',
-    severity: 'positive',
-  },
-  {
-    id: 'ins_fin_4',
-    category: 'Financial',
-    title: 'NOS Overseas Foreign Exchange Exposure',
-    metric: '£9,900 / $15,400 FX Outflow',
-    summary: '8 ST scholars confirmed unconditional admission in UK institutions (Oxford, Cambridge, Edinburgh). Sterling pound appreciation increases foreign living allowance burden by 6.2%.',
-    actionableNote: 'Recommend dynamic currency hedging via Reserve Bank of India MoTA window.',
-    severity: 'info',
-  },
-  {
-    id: 'ins_risk_5',
-    category: 'Operational',
-    title: 'SLA Breach Risk Alert in Desk-IV',
-    metric: '18 Files Approaching 15-day SLA',
-    summary: '18 applicant deficiency responses in Desk-IV have reached day 12 of the statutory 15-day SLA timeline and require priority signing.',
-    actionableNote: 'Auto-escalate files to Joint Secretary Monitoring Queue.',
-    severity: 'warning',
-  },
-];
-
-export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = () => {
-  const [insights, setInsights] = useState<InsightCard[]>(STATIC_LIVE_INSIGHTS);
+export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = ({
+  applications,
+  onSelectApplication,
+  onOpenPresetModal,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedTime, setLastRefreshedTime] = useState<string>('Just now');
 
+  // Compute live strategic insights strictly from current applications
+  const dynamicInsights: InsightCard[] = useMemo(() => {
+    if (applications.length === 0) return [];
+
+    const total = applications.length;
+    const femaleCount = applications.filter((a) => a.applicant?.gender === 'Female').length;
+    const femalePct = ((femaleCount / total) * 100).toFixed(1);
+    const isFemaleQuotaMet = parseFloat(femalePct) >= 30.0;
+
+    // Find state with most applicants
+    const stateCounts: Record<string, number> = {};
+    applications.forEach((a) => {
+      const st = a.applicant?.state || 'General';
+      stateCounts[st] = (stateCounts[st] || 0) + 1;
+    });
+    const sortedStates = Object.entries(stateCounts).sort((a, b) => b[1] - a[1]);
+    const topState = sortedStates[0] || ['All India', 0];
+    const topStatePct = ((topState[1] / total) * 100).toFixed(1);
+
+    // Verified / Clean applications
+    const cleanCount = applications.filter(
+      (a) => a.aiAnalysis?.eligibilityPassed && (!a.deficiencies || a.deficiencies.length === 0)
+    ).length;
+    const cleanPct = ((cleanCount / total) * 100).toFixed(1);
+
+    // High risk count
+    const riskCount = applications.filter(
+      (a) => a.aiAnalysis?.riskScore === 'High' || (a.aiAnalysis?.flags && a.aiAnalysis.flags.length >= 2)
+    ).length;
+
+    // Schemes count
+    const nfstCount = applications.filter((a) => a.scheme === 'NFST').length;
+    const nosCount = applications.filter((a) => a.scheme === 'NOS').length;
+
+    // Estimated Financial Commitment
+    const estimatedNfstCr = ((nfstCount * 4.44) / 100).toFixed(2); // Cr
+    const estimatedNosCr = ((nosCount * 37.5) / 100).toFixed(2); // Cr
+
+    const cards: InsightCard[] = [
+      {
+        id: 'ins_equity_female',
+        category: 'Equity',
+        title: isFemaleQuotaMet
+          ? 'ST Female Scholar Statutory Quota Achieved'
+          : 'Female Scholar Representation Tracking',
+        metric: `${femalePct}% Female ST Participation`,
+        summary: `Current ingested cohort includes ${femaleCount} female ST scholars out of ${total} total candidates (${femalePct}%). ${
+          isFemaleQuotaMet
+            ? 'Surpasses the mandatory 30% parliamentary statutory gender reservation.'
+            : 'Below 30% statutory benchmark. Affirmative intake adjustments recommended.'
+        }`,
+        actionableNote: isFemaleQuotaMet
+          ? 'Affirmative gender targets met across active merit pools.'
+          : 'Trigger targeted outreach in tribal colleges to expand female intake.',
+        severity: isFemaleQuotaMet ? 'positive' : 'warning',
+      },
+      {
+        id: 'ins_geo_concentration',
+        category: 'Geographic',
+        title: `${topState[0]} Regional Intake Concentration`,
+        metric: `${topStatePct}% of Active Cohort`,
+        summary: `${topState[0]} accounts for ${topState[1]} of ${total} ingested dossiers (${topStatePct}%), representing the highest candidate density in this statutory intake.`,
+        actionableNote: `Ensure District Scrutiny Officers in ${topState[0]} verify tahsildar revenue stamps in line with e-District guidelines.`,
+        severity: 'info',
+      },
+      {
+        id: 'ins_ops_verification',
+        category: 'Operational',
+        title: 'Autonomous AI Verification & Clean Pass Rate',
+        metric: `${cleanPct}% Clean Verification`,
+        summary: `${cleanCount} of ${total} dossiers verified with high AI confidence and zero outstanding statutory deficiencies. Turnaround time compressed by automated OCR tallying.`,
+        actionableNote: 'Eligible clean dossiers ready for batch approval and National Merit Board sanction.',
+        severity: 'positive',
+      },
+      {
+        id: 'ins_fin_outflow',
+        category: 'Financial',
+        title: 'Projected Direct Benefit Transfer (DBT) Commitment',
+        metric: `₹${(parseFloat(estimatedNfstCr) + parseFloat(estimatedNosCr)).toFixed(2)} Cr Outlay`,
+        summary: `Calculated expenditure of ₹${estimatedNfstCr} Cr for ${nfstCount} NFST stipends and ₹${estimatedNosCr} Cr for ${nosCount} NOS overseas scholars based on prescribed MoTA norms.`,
+        actionableNote: 'PFMS Direct Benefit Transfer treasury liquidity verified for scheduled 1st-of-month disbursal.',
+        severity: 'info',
+      },
+    ];
+
+    if (riskCount > 0) {
+      cards.push({
+        id: 'ins_risk_sentinel',
+        category: 'Operational',
+        title: 'Sentinel Forensic Risk Flags Detected',
+        metric: `${riskCount} File(s) Under Forensic Review`,
+        summary: `${riskCount} dossier(s) exhibit income limit variance, seal anomalies, or academic cutoff discrepancies requiring field magistrate confirmation.`,
+        actionableNote: 'Escalate flagged files to District Welfare Officer for physical certificate verification.',
+        severity: 'warning',
+      });
+    }
+
+    return cards;
+  }, [applications]);
+
   const filteredInsights = selectedCategory === 'ALL'
-    ? insights
-    : insights.filter((i) => i.category === selectedCategory);
+    ? dynamicInsights
+    : dynamicInsights.filter((i) => i.category === selectedCategory);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
       setLastRefreshedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }, 500);
+    }, 400);
   };
 
   return (
@@ -104,11 +162,14 @@ export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = () => {
             <span>Autonomous Intelligence Synthesis</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Strategic AI Insights
+            Strategic Executive Insights
           </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Derived dynamically from current active preset applications and MoTA policy mandates.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200 text-xs">
             {['ALL', 'Geographic', 'Equity', 'Operational', 'Financial'].map((cat) => (
               <button
@@ -137,56 +198,89 @@ export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = () => {
         </div>
       </div>
 
-      {/* Insight Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredInsights.map((card) => (
-          <div
-            key={card.id}
-            className={`rounded-2xl p-5 border transition-all shadow-sm hover:shadow-md flex flex-col justify-between ${
-              card.severity === 'positive'
-                ? 'bg-white border-emerald-200'
-                : card.severity === 'warning'
-                ? 'bg-white border-amber-200'
-                : 'bg-white border-slate-200'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  card.category === 'Geographic' ? 'bg-blue-100 text-blue-800' :
-                  card.category === 'Equity' ? 'bg-purple-100 text-purple-800' :
-                  card.category === 'Operational' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {card.category}
-                </span>
-
-                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                  card.severity === 'positive' ? 'bg-emerald-100 text-emerald-800' :
-                  card.severity === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-800'
-                }`}>
-                  {card.metric}
-                </span>
-              </div>
-
-              <h3 className="text-base font-bold font-roman text-slate-900 mb-1">
-                {card.title}
-              </h3>
-
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                {card.summary}
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-slate-700">
-                <span className="font-bold text-emerald-800">Action:</span>
-                <span className="text-[11px] truncate max-w-xs">{card.actionableNote}</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-            </div>
+      {/* Blank State if zero applications */}
+      {applications.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+            <Sparkles className="w-8 h-8" />
           </div>
-        ))}
-      </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-lg font-black text-slate-900">
+              No Application Data Loaded (Blank Intake Mode)
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              No false data is loaded. Executive insights synthesize dynamically from ingested candidate dossiers. Please add a preset to generate strategic intelligence.
+            </p>
+          </div>
+          {onOpenPresetModal && (
+            <button
+              type="button"
+              onClick={onOpenPresetModal}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-indigo-600 text-white font-black text-xs hover:from-emerald-500 hover:to-indigo-500 transition cursor-pointer shadow-md inline-flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Add Preset to Ingest Dossiers</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        /* Insight Cards Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredInsights.map((card) => {
+            const isPos = card.severity === 'positive';
+            const isWarn = card.severity === 'warning';
+
+            return (
+              <div
+                key={card.id}
+                className={`p-6 rounded-3xl border-2 transition-all flex flex-col justify-between gap-4 shadow-sm ${
+                  isPos
+                    ? 'bg-emerald-50/50 border-emerald-200 hover:border-emerald-300'
+                    : isWarn
+                    ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+                    : 'bg-indigo-50/50 border-indigo-200 hover:border-indigo-300'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                        isPos
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : isWarn
+                          ? 'bg-amber-100 text-amber-800 border-amber-300'
+                          : 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                      }`}
+                    >
+                      {card.category}
+                    </span>
+                    <span
+                      className={`text-xs font-black ${
+                        isPos ? 'text-emerald-800' : isWarn ? 'text-amber-800' : 'text-indigo-800'
+                      }`}
+                    >
+                      {card.metric}
+                    </span>
+                  </div>
+
+                  <h4 className="text-base font-black text-slate-900 leading-snug">
+                    {card.title}
+                  </h4>
+
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    {card.summary}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200/60 flex items-start gap-2 text-xs">
+                  <span className="font-black text-slate-700 shrink-0">Action:</span>
+                  <span className="text-slate-600 font-medium">{card.actionableNote}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

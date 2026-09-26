@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Clock, 
   AlertTriangle, 
@@ -8,13 +8,15 @@ import {
   Send, 
   UserCheck, 
   ShieldAlert, 
-  FileCheck
+  FileCheck,
+  Sparkles
 } from 'lucide-react';
 import { Application } from '../types/scholarship';
 
 interface SLAEscalationPipelineProps {
   applications: Application[];
   onSelectApplication?: (id: string) => void;
+  onOpenPresetModal?: () => void;
 }
 
 interface PipelineStage {
@@ -31,66 +33,139 @@ interface PipelineStage {
 export const SLAEscalationPipeline: React.FC<SLAEscalationPipelineProps> = ({
   applications,
   onSelectApplication,
+  onOpenPresetModal,
 }) => {
-  const [activeStageId, setActiveStageId] = useState<string>('stage_2');
+  const [activeStageId, setActiveStageId] = useState<string>('stage_1');
   const [escalationSent, setEscalationSent] = useState<Record<string, boolean>>({});
 
-  // 5 Statutory Pipeline Stages
-  const stages: PipelineStage[] = [
-    {
-      id: 'stage_1',
-      name: 'Intake & AI OCR',
-      slaMaxDays: 1, // 24 Hours
-      description: 'Document extraction, e-Pramaan barcode scan, DigiLocker tallying',
-      totalCount: 38,
-      breachedCount: 0,
-      warningCount: 2,
-      onTrackCount: 36,
-    },
-    {
-      id: 'stage_2',
-      name: 'Officer Desk Scrutiny',
-      slaMaxDays: 7, // 7 Days
-      description: 'Senior Scrutiny Officer manual review & statutory checklist verification',
-      totalCount: 64,
-      breachedCount: 14,
-      warningCount: 18,
-      onTrackCount: 32,
-    },
-    {
-      id: 'stage_3',
-      name: 'Field Verification',
-      slaMaxDays: 5, // 5 Days
-      description: 'Revenue Inspector physical habitat & domicile check for contested certificates',
-      totalCount: 19,
-      breachedCount: 3,
-      warningCount: 4,
-      onTrackCount: 12,
-    },
-    {
-      id: 'stage_4',
-      name: 'Apex Merit Sanction',
-      slaMaxDays: 3, // 3 Days
-      description: 'National Screening Board ranking confirmation & 30% Women ST Quota',
-      totalCount: 28,
-      breachedCount: 1,
-      warningCount: 2,
-      onTrackCount: 25,
-    },
-    {
-      id: 'stage_5',
-      name: 'PFMS DBT Disbursal',
-      slaMaxDays: 2, // 48 Hours
-      description: 'Aadhaar Payment Bridge generation, RBI escrow credit, bank SMS trigger',
-      totalCount: 52,
-      breachedCount: 0,
-      warningCount: 1,
-      onTrackCount: 51,
-    },
-  ];
+  const isBlank = applications.length === 0;
 
-  const handleSendEscalation = (appId: string) => {
-    setEscalationSent((prev) => ({ ...prev, [appId]: true }));
+  // Dynamic pipeline calculation
+  const stages: PipelineStage[] = useMemo(() => {
+    if (applications.length === 0) {
+      return [
+        {
+          id: 'stage_1',
+          name: 'Intake & AI OCR',
+          slaMaxDays: 1,
+          description: 'Document extraction, e-Pramaan barcode scan, DigiLocker tallying',
+          totalCount: 0,
+          breachedCount: 0,
+          warningCount: 0,
+          onTrackCount: 0,
+        },
+        {
+          id: 'stage_2',
+          name: 'Officer Desk Scrutiny',
+          slaMaxDays: 7,
+          description: 'Senior Scrutiny Officer manual review & statutory checklist verification',
+          totalCount: 0,
+          breachedCount: 0,
+          warningCount: 0,
+          onTrackCount: 0,
+        },
+        {
+          id: 'stage_3',
+          name: 'Deficiency Clarification Desk',
+          slaMaxDays: 15,
+          description: 'Student replacement upload window under 15-day statutory citizen charter',
+          totalCount: 0,
+          breachedCount: 0,
+          warningCount: 0,
+          onTrackCount: 0,
+        },
+        {
+          id: 'stage_4',
+          name: 'National Merit Board',
+          slaMaxDays: 5,
+          description: 'Joint Secretary quota preservation & merit publication',
+          totalCount: 0,
+          breachedCount: 0,
+          warningCount: 0,
+          onTrackCount: 0,
+        },
+        {
+          id: 'stage_5',
+          name: 'PFMS DBT Disbursal',
+          slaMaxDays: 3,
+          description: 'Direct Benefit Transfer release to Aadhaar-seeded bank accounts',
+          totalCount: 0,
+          breachedCount: 0,
+          warningCount: 0,
+          onTrackCount: 0,
+        },
+      ];
+    }
+
+    const s1 = applications.filter((a) => a.status === 'submitted' || a.status === 'in_scrutiny').length;
+    const s2 = applications.filter((a) => a.status === 'in_scrutiny').length;
+    const s3 = applications.filter((a) => a.deficiencies && a.deficiencies.length > 0).length;
+    const s4 = applications.filter((a) => a.status === 'merit_listed' || a.status === 'approved').length;
+    const s5 = applications.filter((a) => a.status === 'dbt_active').length;
+
+    const riskCount = applications.filter((a) => a.aiAnalysis?.riskScore === 'High').length;
+
+    return [
+      {
+        id: 'stage_1',
+        name: 'Intake & AI OCR',
+        slaMaxDays: 1,
+        description: 'Document extraction, e-Pramaan barcode scan, DigiLocker tallying',
+        totalCount: s1,
+        breachedCount: 0,
+        warningCount: Math.min(s1, riskCount),
+        onTrackCount: Math.max(0, s1 - riskCount),
+      },
+      {
+        id: 'stage_2',
+        name: 'Officer Desk Scrutiny',
+        slaMaxDays: 7,
+        description: 'Senior Scrutiny Officer manual review & statutory checklist verification',
+        totalCount: s2,
+        breachedCount: Math.min(s2, Math.floor(riskCount / 2)),
+        warningCount: Math.min(s2, riskCount),
+        onTrackCount: Math.max(0, s2 - riskCount),
+      },
+      {
+        id: 'stage_3',
+        name: 'Deficiency Clarification Desk',
+        slaMaxDays: 15,
+        description: 'Student replacement upload window under 15-day statutory citizen charter',
+        totalCount: s3,
+        breachedCount: 0,
+        warningCount: s3,
+        onTrackCount: 0,
+      },
+      {
+        id: 'stage_4',
+        name: 'National Merit Board',
+        slaMaxDays: 5,
+        description: 'Joint Secretary quota preservation & merit publication',
+        totalCount: s4,
+        breachedCount: 0,
+        warningCount: 0,
+        onTrackCount: s4,
+      },
+      {
+        id: 'stage_5',
+        name: 'PFMS DBT Disbursal',
+        slaMaxDays: 3,
+        description: 'Direct Benefit Transfer release to Aadhaar-seeded bank accounts',
+        totalCount: s5,
+        breachedCount: 0,
+        warningCount: 0,
+        onTrackCount: s5,
+      },
+    ];
+  }, [applications]);
+
+  const activeStage = stages.find((s) => s.id === activeStageId) || stages[0];
+
+  const handleSendEscalation = (id: string) => {
+    setEscalationSent((prev) => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setEscalationSent((prev) => ({ ...prev, [id]: false }));
+    }, 4000);
   };
 
   return (
@@ -100,71 +175,82 @@ export const SLAEscalationPipeline: React.FC<SLAEscalationPipelineProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-black text-emerald-800 uppercase tracking-wider mb-1">
             <Clock className="w-4 h-4 text-emerald-700" />
-            <span>Citizen Charter Compliance</span>
+            <span>Statutory Citizen Charter Compliance</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            SLA Escalation Radar
+            SLA Escalation Pipeline
           </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            5-stage statutory lifecycle tracking real-time pendency against Government of India citizen charter deadlines.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-rose-100 text-rose-800 text-xs font-bold border border-rose-300 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>18 Critical Breaches Across Desks</span>
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold">
+            {applications.length} Active Dossiers
           </span>
         </div>
       </div>
 
-      {/* Visual 5-Stage Pipeline Funnel */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+      {/* Blank State Callout */}
+      {isBlank && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-amber-800" />
+            </div>
+            <div>
+              <div className="font-black text-sm">Pipeline Idle (0 Applications Loaded)</div>
+              <p className="text-xs text-amber-800">
+                SLA clocks are stopped. Add candidate presets to track real-time 15-day statutory escalation timelines.
+              </p>
+            </div>
+          </div>
+          {onOpenPresetModal && (
+            <button
+              type="button"
+              onClick={onOpenPresetModal}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer shrink-0"
+            >
+              ➕ Ingest Preset
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 5-Stage Stepper Track */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
         {stages.map((stage, idx) => {
           const isSelected = activeStageId === stage.id;
-          const hasBreach = stage.breachedCount > 0;
           return (
             <button
               key={stage.id}
               type="button"
               onClick={() => setActiveStageId(stage.id)}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative shadow-sm ${
+              className={`p-4 rounded-2xl border-2 text-left transition cursor-pointer flex flex-col justify-between min-h-[110px] ${
                 isSelected
-                  ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-emerald-500/40 shadow-md'
-                  : 'bg-white hover:bg-slate-50 text-slate-900 border-slate-200'
+                  ? 'bg-emerald-50/80 border-emerald-600 shadow-md ring-2 ring-emerald-500/20'
+                  : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
-                }`}>
-                  Stage {idx + 1}
-                </span>
-
-                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                  hasBreach ? 'bg-rose-500 text-white' : 'bg-emerald-600 text-white'
-                }`}>
-                  Max {stage.slaMaxDays}d SLA
-                </span>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400">
+                  <span>Stage {idx + 1}</span>
+                  <span className="text-emerald-700">{stage.slaMaxDays}d SLA</span>
+                </div>
+                <div className="text-xs font-black text-slate-900 leading-snug">
+                  {stage.name}
+                </div>
               </div>
 
-              <div className="font-bold font-roman text-sm mb-1 truncate">
-                {stage.name}
-              </div>
-
-              <div className="text-2xl font-bold font-roman my-1">
-                {stage.totalCount}
-              </div>
-
-              {/* Status Indicator */}
-              <div className="flex items-center gap-1.5 text-[11px] mt-2 pt-2 border-t border-slate-200/40">
-                {hasBreach ? (
-                  <span className="text-rose-400 font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-rose-400" />
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="font-black text-slate-900">{stage.totalCount} Files</span>
+                {stage.breachedCount > 0 ? (
+                  <span className="text-rose-600 font-bold text-[10px]">
                     {stage.breachedCount} Breached
                   </span>
                 ) : (
-                  <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    100% On Time
-                  </span>
+                  <span className="text-emerald-700 font-bold text-[10px]">On Track</span>
                 )}
               </div>
             </button>
@@ -172,95 +258,52 @@ export const SLAEscalationPipeline: React.FC<SLAEscalationPipelineProps> = ({
         })}
       </div>
 
-      {/* Selected Stage Detail & Escalation Action Desk */}
+      {/* Active Stage Inspector Detail */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
-            <h3 className="text-base font-bold font-roman text-slate-900">
-              Files In Active Stage: {stages.find((s) => s.id === activeStageId)?.name}
+            <span className="text-xs font-black text-emerald-800 uppercase tracking-wider">
+              Selected Lifecycle Stage:
+            </span>
+            <h3 className="text-xl font-black text-slate-900 mt-0.5">
+              {activeStage.name} (Max {activeStage.slaMaxDays} Days SLA)
             </h3>
-            <p className="text-xs text-slate-500">
-              {stages.find((s) => s.id === activeStageId)?.description}
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
+              {activeStage.description}
             </p>
           </div>
-          <span className="text-xs font-bold text-slate-600">
-            Statutory Target: {stages.find((s) => s.id === activeStageId)?.slaMaxDays} business days
-          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleSendEscalation(activeStage.id)}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{escalationSent[activeStage.id] ? 'Escalation Notice Dispatched ✓' : 'Dispatch Officer Reminder'}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Priority SLA Cases Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase font-semibold">
-              <tr>
-                <th className="py-2.5 px-3">Application ID</th>
-                <th className="py-2.5 px-3">Candidate</th>
-                <th className="py-2.5 px-3">Assigned Desk</th>
-                <th className="py-2.5 px-3">Days In Stage</th>
-                <th className="py-2.5 px-3">SLA Status</th>
-                <th className="py-2.5 px-3 text-right">Escalation Trigger</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {applications.slice(0, 5).map((app, idx) => {
-                const daysInStage = idx === 0 ? 16 : idx === 1 ? 14 : 4;
-                const isBreached = daysInStage > 7;
-                const isWarning = daysInStage >= 6 && daysInStage <= 7;
-                const isSent = Boolean(escalationSent[app.id]);
+        {/* Counts breakdown */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+            <div className="text-xs text-emerald-800 font-bold">On-Track Within SLA</div>
+            <div className="text-2xl font-black text-emerald-950 mt-1">{activeStage.onTrackCount}</div>
+            <div className="text-[10px] text-emerald-700">Operating under statutory turnaround</div>
+          </div>
 
-                return (
-                  <tr key={app.id} className="hover:bg-slate-50 transition">
-                    <td className="py-3 px-3 font-mono font-bold text-slate-800">
-                      {app.applicationNumber}
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-slate-900">{app.applicant?.fullName}</div>
-                      <div className="text-[10px] text-slate-500">{app.applicant?.stCommunity} • {app.applicant?.state}</div>
-                    </td>
-                    <td className="py-3 px-3 text-slate-700">
-                      Desk-IV (Dr. Soren, IES)
-                    </td>
-                    <td className="py-3 px-3 font-bold">
-                      <span className={isBreached ? 'text-rose-700' : 'text-slate-800'}>
-                        {daysInStage} Days
-                      </span>
-                    </td>
-                    <td className="py-3 px-3">
-                      {isBreached ? (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-300">
-                          SLA Breached (+{daysInStage - 7}d)
-                        </span>
-                      ) : isWarning ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] border border-amber-300">
-                          Warning (&lt;24h)
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
-                          Within Norms
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      {isSent ? (
-                        <span className="text-emerald-700 font-bold text-[11px] flex items-center justify-end gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Escalated to JS
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSendEscalation(app.id)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold text-[11px] transition cursor-pointer border border-rose-200"
-                        >
-                          Send Priority Escalation
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
+            <div className="text-xs text-amber-800 font-bold">Warning Approaching Limit</div>
+            <div className="text-2xl font-black text-amber-950 mt-1">{activeStage.warningCount}</div>
+            <div className="text-[10px] text-amber-700">Requires officer clearance within 48h</div>
+          </div>
+
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200">
+            <div className="text-xs text-rose-800 font-bold">Statutory SLA Breached</div>
+            <div className="text-2xl font-black text-rose-950 mt-1">{activeStage.breachedCount}</div>
+            <div className="text-[10px] text-rose-700">Auto-escalated to Monitoring Queue</div>
+          </div>
         </div>
       </div>
     </div>

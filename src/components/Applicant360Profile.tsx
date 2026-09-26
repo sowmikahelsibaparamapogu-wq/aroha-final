@@ -32,6 +32,24 @@ export const Applicant360Profile: React.FC<Applicant360ProfileProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'timeline' | 'dbt'>('overview');
 
+  if (!application) {
+    return (
+      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto">
+          <User className="w-8 h-8" />
+        </div>
+        <div className="space-y-1 max-w-md mx-auto">
+          <h3 className="text-lg font-black text-slate-900">
+            No Applicant Dossier Loaded (Blank Mode)
+          </h3>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            No false or mock candidate data is preloaded. Ingest presets to populate applicant profiles and inspect comprehensive 360° verification audits.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const { applicant, academic, bankDetails, documents = [], aiAnalysis, status, scheme } = application;
 
   // Derive Merit Rank
