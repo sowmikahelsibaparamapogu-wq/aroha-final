@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Building2, 
   Search, 
@@ -11,7 +11,15 @@ import {
   FileCheck, 
   UserCheck, 
   Calendar,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown,
+  Filter,
+  User,
+  Compass,
+  CheckSquare,
+  XSquare,
+  Sparkles,
+  Navigation
 } from 'lucide-react';
 import { Application } from '../types/scholarship';
 import { Avatar } from './Avatar';
@@ -25,17 +33,27 @@ export interface FieldInspectionRecord {
   community: string;
   district: string;
   state: string;
+  scheme: string;
+  riskScore: 'Low' | 'Medium' | 'High';
   dispatchReason: string;
   assignedAuthority: string;
   status: 'dispatched' | 'under_investigation' | 'verified_genuine' | 'flagged_adverse';
   dispatchedAt: string;
   reportDate?: string;
+  inspectorName?: string;
   inspectorRemarks?: string;
+  gpsCoordinates?: string;
+  checklist?: {
+    sarpanchConfirmed: boolean;
+    revenueRegistryMatched: boolean;
+    incomeLandholdingVerified: boolean;
+    bonafideEnrollmentValid: boolean;
+  };
 }
 
 interface FieldVerificationDeskProps {
   applications: Application[];
-  onOpenApplication: (app: Application) => void;
+  onOpenApplication?: (app: Application) => void;
   onToast: (type: 'success' | 'warning' | 'info', title: string, message: string) => void;
 }
 
@@ -44,175 +62,280 @@ export const FieldVerificationDesk: React.FC<FieldVerificationDeskProps> = ({
   onOpenApplication,
   onToast,
 }) => {
-  // Dynamically derive field inspection orders strictly from active applications
-  const dynamicInspections = React.useMemo<FieldInspectionRecord[]>(() => {
-    if (applications.length === 0) return [];
+  // Sorting options
+  const [sortOrder, setSortOrder] = useState<
+    'priority' | 'app_no_asc' | 'app_no_desc' | 'name_asc' | 'state' | 'date_desc'
+  >('priority');
 
-    return applications
-      .filter(
-        (a) =>
-          a.aiAnalysis?.requiresHumanReview ||
-          a.status === 'flagged_deficiency' ||
-          a.aiAnalysis?.riskScore === 'High' ||
-          (a.aiAnalysis?.flags && a.aiAnalysis.flags.length > 0)
-      )
-      .map((app, idx) => ({
-        id: `insp_${app.id}`,
-        appId: app.id,
-        applicationNumber: app.applicationNumber,
-        candidateName: app.applicant.fullName,
-        community: app.applicant.stCommunity,
-        district: app.applicant.district || 'Scheduled ITDA District',
-        state: app.applicant.state,
-        dispatchReason:
-          app.deficiencies?.[0]?.description ||
-          app.aiAnalysis?.flags?.[0] ||
-          'Cross-verification of ST caste certificate validity and local revenue authority seal.',
-        assignedAuthority: `District Tribal Welfare Officer (DTWO), ${app.applicant.district || app.applicant.state}`,
-        status: (idx % 2 === 0 ? 'under_investigation' : 'dispatched') as 'under_investigation' | 'dispatched',
-        dispatchedAt: app.submittedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
-      }));
-  }, [applications]);
-
-  const [inspections, setInspections] = useState<FieldInspectionRecord[]>(dynamicInspections);
-
-  React.useEffect(() => {
-    setInspections(dynamicInspections);
-  }, [dynamicInspections]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [stateFilter, setStateFilter] = useState<string>('ALL');
-  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   
-  // New dispatch form state
-  const [selectedAppId, setSelectedAppId] = useState<string>(applications[0]?.id || '');
-  const [dispatchReason, setDispatchReason] = useState('Cross-verification of ST caste certificate validity and local revenue authority seal.');
-  const [assignedDistrictOffice, setAssignedDistrictOffice] = useState('Integrated Tribal Development Agency (ITDA) Project Office');
-
-  const filteredInspections = inspections.filter((item) => {
-    const matchesSearch =
-      item.candidateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.applicationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.state.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
-    const matchesState =
-      stateFilter === 'ALL' || item.state.toLowerCase() === stateFilter.toLowerCase();
-    return matchesSearch && matchesStatus && matchesState;
+  // Verification Modal State
+  const [verifyingApp, setVerifyingApp] = useState<Application | null>(null);
+  const [inspectorName, setInspectorName] = useState('Shri R. K. Maravi, DTWO');
+  const [assignedAuthority, setAssignedAuthority] = useState('Integrated Tribal Development Agency (ITDA) Project Office');
+  const [gpsTag, setGpsTag] = useState('19.6641° N, 78.5320° E (Scheduled Area Tribal Block)');
+  const [fieldRemarks, setFieldRemarks] = useState('');
+  const [checklist, setChecklist] = useState({
+    sarpanchConfirmed: true,
+    revenueRegistryMatched: true,
+    incomeLandholdingVerified: true,
+    bonafideEnrollmentValid: true,
   });
 
-  const handleCreateDispatch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetApp = applications.find((a) => a.id === selectedAppId);
-    if (!targetApp) return;
+  // Track modified status overrides in memory
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, {
+    status: FieldInspectionRecord['status'];
+    remarks?: string;
+    inspector?: string;
+    reportDate?: string;
+    gps?: string;
+  }>>({});
 
-    const newInspection: FieldInspectionRecord = {
-      id: `insp_${Date.now()}`,
-      appId: targetApp.id,
-      applicationNumber: targetApp.applicationNumber,
-      candidateName: targetApp.applicant.fullName,
-      community: targetApp.applicant.stCommunity,
-      district: targetApp.applicant.district || 'Scheduled District',
-      state: targetApp.applicant.state || 'Tribal State',
-      dispatchReason: dispatchReason.trim(),
-      assignedAuthority: `${assignedDistrictOffice}, ${targetApp.applicant.district}`,
-      status: 'dispatched',
-      dispatchedAt: new Date().toISOString().split('T')[0],
-    };
+  // 1. ALL APPLICANTS IN ORDER: derive inspection dossiers for EVERY application
+  const allOrderedInspections = useMemo<FieldInspectionRecord[]>(() => {
+    if (!applications || applications.length === 0) return [];
 
-    setInspections([newInspection, ...inspections]);
-    setIsDispatchModalOpen(false);
-    onToast(
-      'success',
-      'Field Inspection Order Dispatched',
-      `Official order transmitted to ${assignedDistrictOffice} for candidate ${targetApp.applicant.fullName}.`
-    );
+    // Map every application
+    const records = applications.map((app, idx) => {
+      const isHighRisk = app.aiAnalysis?.riskScore === 'High' || 
+        app.status === 'flagged_deficiency' || 
+        (app.aiAnalysis?.flags && app.aiAnalysis.flags.length > 0);
+
+      const override = statusOverrides[app.id];
+
+      const defaultStatus: FieldInspectionRecord['status'] = 
+        app.status === 'approved' || app.status === 'dbt_active' 
+          ? 'verified_genuine' 
+          : isHighRisk 
+          ? 'under_investigation' 
+          : 'dispatched';
+
+      return {
+        id: `insp_${app.id}`,
+        appId: app.id,
+        applicationNumber: app.applicationNumber,
+        candidateName: app.applicant?.fullName || 'Scholar Candidate',
+        community: app.applicant?.stCommunity || 'Gond',
+        district: app.applicant?.district || 'Scheduled Tribal District',
+        state: app.applicant?.state || 'Scheduled State',
+        scheme: app.scheme || 'NFST',
+        riskScore: (app.aiAnalysis?.riskScore as any) || (isHighRisk ? 'High' : 'Low'),
+        dispatchReason:
+          app.deficiencies?.[0]?.description ||
+          app.aiAnalysis?.flags?.[0] ||
+          'Physical cross-verification of ST caste certificate validity, village domicile, and local revenue record.',
+        assignedAuthority: override?.inspector 
+          ? `District Tribal Welfare Office, ${app.applicant?.district}` 
+          : `Integrated Tribal Development Agency (ITDA), ${app.applicant?.district || app.applicant?.state}`,
+        status: override?.status || defaultStatus,
+        dispatchedAt: app.submittedAt?.split('T')[0] || '2026-01-15',
+        reportDate: override?.reportDate,
+        inspectorName: override?.inspector || (isHighRisk ? 'DTWO Verification Inspector' : undefined),
+        inspectorRemarks: override?.remarks,
+        gpsCoordinates: override?.gps,
+      };
+    });
+
+    // Sort in order based on user selection
+    return records.sort((a, b) => {
+      if (sortOrder === 'priority') {
+        const riskWeight = { High: 3, Medium: 2, Low: 1 };
+        const diff = (riskWeight[b.riskScore] || 1) - (riskWeight[a.riskScore] || 1);
+        if (diff !== 0) return diff;
+        return a.candidateName.localeCompare(b.candidateName);
+      }
+      if (sortOrder === 'app_no_asc') return a.applicationNumber.localeCompare(b.applicationNumber);
+      if (sortOrder === 'app_no_desc') return b.applicationNumber.localeCompare(a.applicationNumber);
+      if (sortOrder === 'name_asc') return a.candidateName.localeCompare(b.candidateName);
+      if (sortOrder === 'state') return a.state.localeCompare(b.state);
+      if (sortOrder === 'date_desc') return b.dispatchedAt.localeCompare(a.dispatchedAt);
+      return 0;
+    });
+  }, [applications, statusOverrides, sortOrder]);
+
+  // Filtered by search & dropdowns
+  const filteredInspections = useMemo(() => {
+    return allOrderedInspections.filter((item) => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        item.candidateName.toLowerCase().includes(q) ||
+        item.applicationNumber.toLowerCase().includes(q) ||
+        item.district.toLowerCase().includes(q) ||
+        item.state.toLowerCase().includes(q) ||
+        item.community.toLowerCase().includes(q);
+
+      const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+      const matchesState = stateFilter === 'ALL' || item.state.toLowerCase() === stateFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus && matchesState;
+    });
+  }, [allOrderedInspections, searchTerm, statusFilter, stateFilter]);
+
+  // Open Verification Modal for any student
+  const handleOpenVerification = (appId: string) => {
+    const target = applications.find((a) => a.id === appId);
+    if (!target) return;
+    setVerifyingApp(target);
+
+    // Prepopulate remarks if already verified
+    const existing = statusOverrides[target.id];
+    setFieldRemarks(existing?.remarks || 'Physical village visit conducted; family tribal heritage and village revenue ledger verified genuine.');
+    setChecklist({
+      sarpanchConfirmed: true,
+      revenueRegistryMatched: true,
+      incomeLandholdingVerified: true,
+      bonafideEnrollmentValid: true,
+    });
   };
 
-  const handleUpdateInspectionStatus = (id: string, newStatus: 'verified_genuine' | 'flagged_adverse') => {
-    setInspections((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        return {
-          ...item,
-          status: newStatus,
-          reportDate: new Date().toISOString().split('T')[0],
-          inspectorRemarks: newStatus === 'verified_genuine'
-            ? 'District Officer conducted field visit; domicile and caste records certified authentic.'
-            : 'Adverse report recorded by District Vigilance Officer; discrepancy confirmed on physical check.',
-        };
-      })
-    );
+  // Submit Field Verification Decision
+  const handleSignOffVerification = (newStatus: 'verified_genuine' | 'flagged_adverse') => {
+    if (!verifyingApp) return;
+
+    setStatusOverrides((prev) => ({
+      ...prev,
+      [verifyingApp.id]: {
+        status: newStatus,
+        remarks: fieldRemarks.trim() || (newStatus === 'verified_genuine' ? 'Physical visit certified genuine.' : 'Discrepancy confirmed by vigilance inquiry.'),
+        inspector: inspectorName,
+        reportDate: new Date().toISOString().split('T')[0],
+        gps: gpsTag,
+      },
+    }));
 
     onToast(
       newStatus === 'verified_genuine' ? 'success' : 'warning',
       newStatus === 'verified_genuine' ? 'Field Verification Cleared' : 'Adverse Field Finding Logged',
-      `Inspection status updated for candidate file.`
+      `Candidate ${verifyingApp.applicant?.fullName} verified by ${inspectorName}.`
     );
+
+    setVerifyingApp(null);
   };
 
   return (
     <div className="space-y-6">
       {/* Top Banner: District Field Verification Authority */}
-      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-3xl p-6 shadow-md border border-emerald-800/40 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-emerald-800/40 relative overflow-hidden space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-black mb-2">
               <MapPin className="w-3.5 h-3.5" />
-              <span>MoTA On-Ground Vigilance & District Liaison Network</span>
+              <span>MoTA DISTRICT LIAISON & SCHEDULED AREA ON-GROUND NETWORK</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-emerald-400" />
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <Building2 className="w-7 h-7 text-emerald-400" />
               <span>District Field & Physical Verification Desk</span>
             </h2>
-            <p className="text-xs text-emerald-200/90 mt-1 max-w-2xl leading-relaxed">
-              Dispatch physical inquiries to Integrated Tribal Development Agencies (ITDAs) and District Tribal Welfare Officers (DTWOs) across Scheduled Areas for suspect certificates or lineage verification.
+            <p className="text-xs sm:text-sm text-emerald-200/90 mt-1 max-w-2xl leading-relaxed">
+              Orderly registry of all {applications.length} candidate files for physical verification through Integrated Tribal Development Agencies (ITDAs) and District Tribal Welfare Officers (DTWOs).
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsDispatchModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition flex items-center gap-2 cursor-pointer self-start md:self-auto"
-          >
-            <Send className="w-4 h-4" />
-            <span>Dispatch New Field Inspection</span>
-          </button>
+          {/* Quick "Select Student to Verify" Dropdown */}
+          <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20">
+            <div className="flex items-center gap-2 px-2 text-xs text-amber-300 font-bold shrink-0">
+              <UserCheck className="w-4 h-4" />
+              <span>Select Student to Verify:</span>
+            </div>
+            <select
+              onChange={(e) => {
+                if (e.target.value) handleOpenVerification(e.target.value);
+              }}
+              value=""
+              className="bg-emerald-900/90 text-white font-bold text-xs px-3 py-2 rounded-xl border border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer w-full sm:w-64"
+            >
+              <option value="">-- Choose Candidate to Verify --</option>
+              {allOrderedInspections.map((item) => (
+                <option key={item.appId} value={item.appId} className="bg-slate-900 text-white">
+                  {item.candidateName} ({item.applicationNumber} • {item.district})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Status Counters Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/10">
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 text-center">
+            <div className="text-[10px] text-emerald-300 font-bold uppercase">All Candidates in Order</div>
+            <div className="text-lg font-black text-white">{allOrderedInspections.length}</div>
+          </div>
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 text-center">
+            <div className="text-[10px] text-emerald-300 font-bold uppercase">Certified Genuine</div>
+            <div className="text-lg font-black text-emerald-400">
+              {allOrderedInspections.filter((i) => i.status === 'verified_genuine').length}
+            </div>
+          </div>
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 text-center">
+            <div className="text-[10px] text-emerald-300 font-bold uppercase">In Ground Inquiry</div>
+            <div className="text-lg font-black text-amber-300">
+              {allOrderedInspections.filter((i) => i.status === 'under_investigation' || i.status === 'dispatched').length}
+            </div>
+          </div>
+          <div className="bg-white/5 rounded-xl p-2.5 border border-white/10 text-center">
+            <div className="text-[10px] text-emerald-300 font-bold uppercase">Adverse Findings</div>
+            <div className="text-lg font-black text-rose-400">
+              {allOrderedInspections.filter((i) => i.status === 'flagged_adverse').length}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-80">
+      {/* Filter, Ordering & Search Bar */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-md flex flex-wrap items-center justify-between gap-4">
+        {/* Search */}
+        <div className="relative w-full md:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search district, candidate, or authority..."
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Search candidate, district, tribe..."
+            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
           />
         </div>
 
+        {/* Ordering Controls & Filters */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* Order Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs">
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+            <span className="font-bold text-slate-600">Order by:</span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as any)}
+              className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+            >
+              <option value="priority">Priority & Risk (High to Low)</option>
+              <option value="name_asc">Candidate Name (A to Z)</option>
+              <option value="app_no_asc">Application # (Ascending)</option>
+              <option value="app_no_desc">Application # (Descending)</option>
+              <option value="state">State / District</option>
+              <option value="date_desc">Submission Date (Newest)</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 bg-white cursor-pointer"
           >
-            <option value="ALL">All Inspection Statuses</option>
-            <option value="dispatched">Dispatched to District</option>
-            <option value="under_investigation">Under Investigation</option>
+            <option value="ALL">All Statuses ({allOrderedInspections.length})</option>
+            <option value="under_investigation">In Field Inquiry</option>
             <option value="verified_genuine">Verified Genuine</option>
             <option value="flagged_adverse">Adverse Finding</option>
+            <option value="dispatched">Dispatched to District</option>
           </select>
 
+          {/* State Filter */}
           <select
             value={stateFilter}
             onChange={(e) => setStateFilter(e.target.value)}
             className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 bg-white cursor-pointer"
-            title="Filter by State / UT"
           >
             <option value="ALL">All States / UTs (36)</option>
             {INDIAN_ADMINISTRATIVE_DIVISIONS.map((div) => (
@@ -229,214 +352,293 @@ export const FieldVerificationDesk: React.FC<FieldVerificationDeskProps> = ({
       </div>
 
       {/* Field Inspection Orders Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-900">District Field Inspection Orders</h3>
-            <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-              {filteredInspections.length} Active Orders
+            <h3 className="text-sm font-black text-slate-900">
+              District Verification Dossiers (Ordered List)
+            </h3>
+            <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+              {filteredInspections.length} Candidates
             </span>
           </div>
-          <span className="text-xs text-slate-400">ITDA & District Welfare Network</span>
+          <span className="text-xs text-slate-400 font-medium">
+            Showing all applicants in order • Click 'Verify Student' to sign off
+          </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-5">Candidate / District</th>
+                <th className="py-3 px-4">Scheme & ST Tribe</th>
                 <th className="py-3 px-4">Dispatched Authority</th>
-                <th className="py-3 px-4">Verification Reason</th>
+                <th className="py-3 px-4">Risk Sentinel</th>
                 <th className="py-3 px-4">Current Status</th>
-                <th className="py-3 px-4">Dispatch Date</th>
-                <th className="py-3 px-5 text-right">Scrutinizer Action</th>
+                <th className="py-3 px-5 text-right">Verification Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {filteredInspections.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
-                    No field inspection orders currently active. Add presets or dispatch a dossier for district verification.
+                    No candidates found matching the active filters.
                   </td>
                 </tr>
               ) : (
                 filteredInspections.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/60 transition">
-                  <td className="py-3.5 px-5">
-                    <span className="font-bold text-slate-900 block">{item.candidateName}</span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      {item.applicationNumber} • {item.district}, {item.state}
-                    </span>
-                  </td>
-
-                  <td className="py-3.5 px-4 max-w-xs">
-                    <span className="font-semibold text-slate-800 block text-[11px]">
-                      {item.assignedAuthority}
-                    </span>
-                  </td>
-
-                  <td className="py-3.5 px-4 max-w-xs">
-                    <p className="text-[11px] text-slate-600 line-clamp-2">
-                      {item.dispatchReason}
-                    </p>
-                    {item.inspectorRemarks && (
-                      <p className="text-[10px] font-medium text-emerald-800 bg-emerald-50 p-1 rounded mt-1">
-                        Report: {item.inspectorRemarks}
-                      </p>
-                    )}
-                  </td>
-
-                  <td className="py-3.5 px-4">
-                    {item.status === 'dispatched' && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                        <Clock className="w-3 h-3" /> Dispatched
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3.5 px-5">
+                      <span className="font-bold text-slate-900 block text-sm">{item.candidateName}</span>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        {item.applicationNumber} • {item.district}, {item.state}
                       </span>
-                    )}
-                    {item.status === 'under_investigation' && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                        <Clock className="w-3 h-3" /> In Field Inquiry
-                      </span>
-                    )}
-                    {item.status === 'verified_genuine' && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3" /> Certified Genuine
-                      </span>
-                    )}
-                    {item.status === 'flagged_adverse' && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                        <AlertTriangle className="w-3 h-3" /> Adverse Finding
-                      </span>
-                    )}
-                  </td>
+                    </td>
 
-                  <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                    {item.dispatchedAt}
-                  </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-indigo-900 block text-[11px]">{item.community}</span>
+                      <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold mt-0.5 ${
+                        item.scheme === 'NFST' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {item.scheme} Fellowship
+                      </span>
+                    </td>
 
-                  <td className="py-3.5 px-5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {item.status !== 'verified_genuine' && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateInspectionStatus(item.id, 'verified_genuine')}
-                          className="px-2 py-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition cursor-pointer"
-                          title="Record Genuine Verification from District Report"
-                        >
-                          Mark Genuine
-                        </button>
+                    <td className="py-3.5 px-4 max-w-xs">
+                      <span className="font-semibold text-slate-800 block text-[11px] truncate">
+                        {item.assignedAuthority}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {item.inspectorName || 'DTWO Inquest Officer Assigned'}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        item.riskScore === 'High' 
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200' 
+                          : item.riskScore === 'Medium'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        {item.riskScore} Priority
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      {item.status === 'dispatched' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          <Clock className="w-3 h-3" /> Dispatched
+                        </span>
                       )}
-                      {item.status !== 'flagged_adverse' && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateInspectionStatus(item.id, 'flagged_adverse')}
-                          className="px-2 py-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition cursor-pointer"
-                          title="Record Adverse Finding from District Report"
-                        >
-                          Mark Adverse
-                        </button>
+                      {item.status === 'under_investigation' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          <Clock className="w-3 h-3" /> In Field Inquiry
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+                      {item.status === 'verified_genuine' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" /> Certified Genuine
+                        </span>
+                      )}
+                      {item.status === 'flagged_adverse' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                          <AlertTriangle className="w-3 h-3" /> Adverse Finding
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3.5 px-5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenVerification(item.appId)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs transition cursor-pointer shadow-xs inline-flex items-center gap-1"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Verify Student</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </div>
 
-      {/* Dispatch Modal */}
-      {isDispatchModalOpen && (
+      {/* On-Ground Field & Physical Verification Workbench Modal */}
+      {verifyingApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in">
-            <div className="bg-emerald-950 text-white p-5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
                 <Building2 className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-sm font-bold">Dispatch District Field Verification</h3>
+                <div>
+                  <h3 className="text-base font-black">On-Ground Field & Physical Verification</h3>
+                  <p className="text-[11px] text-emerald-200">
+                    Candidate: <strong>{verifyingApp.applicant?.fullName}</strong> ({verifyingApp.applicationNumber})
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsDispatchModalOpen(false)}
+                onClick={() => setVerifyingApp(null)}
                 className="p-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-900 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateDispatch} className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Select Candidate File:</label>
-                <select
-                  value={selectedAppId}
-                  onChange={(e) => setSelectedAppId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs"
-                >
-                  {(applications || []).map((app) => (
-                    <option key={app.id} value={app.id}>
-                      {app.applicant.fullName} ({app.applicationNumber} • {app.applicant.district}, {app.applicant.state})
-                    </option>
-                  ))}
-                </select>
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 overflow-y-auto text-xs">
+              {/* Candidate Physical Profile Card */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Community / Tribe:</span>
+                  <strong className="text-slate-900">{verifyingApp.applicant?.stCommunity}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Declared Income:</span>
+                  <strong className="text-emerald-800">₹{verifyingApp.applicant?.annualFamilyIncome?.toLocaleString('en-IN')}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">District & State:</span>
+                  <strong className="text-slate-900">{verifyingApp.applicant?.district}, {verifyingApp.applicant?.state}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Scheme Track:</span>
+                  <strong className="text-indigo-900">{verifyingApp.scheme} Fellowship</strong>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Assigned District Welfare Authority:</label>
-                <select
-                  value={assignedDistrictOffice}
-                  onChange={(e) => setAssignedDistrictOffice(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs"
-                >
-                  <option value="Integrated Tribal Development Agency (ITDA) Project Office">
-                    Integrated Tribal Development Agency (ITDA) Project Office
-                  </option>
-                  <option value="District Tribal Welfare Officer (DTWO)">
-                    District Tribal Welfare Officer (DTWO)
-                  </option>
-                  <option value="Sub-Divisional Magistrate (SDM) / Revenue Tehsildar">
-                    Sub-Divisional Magistrate (SDM) / Revenue Tehsildar
-                  </option>
-                  <option value="State Tribal Research Institute (TRI) Verification Cell">
-                    State Tribal Research Institute (TRI) Verification Cell
-                  </option>
-                </select>
+              {/* Physical Verification Checklist */}
+              <div className="space-y-2">
+                <span className="font-black text-slate-800 uppercase tracking-wide block">
+                  Mandatory Statutory Field Audit Checklist:
+                </span>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.sarpanchConfirmed}
+                      onChange={(e) => setChecklist({ ...checklist, sarpanchConfirmed: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span>1. Gram Panchayat / Village Sarpanch confirms indigenous Scheduled Tribe domicile and ancestral residence.</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.revenueRegistryMatched}
+                      onChange={(e) => setChecklist({ ...checklist, revenueRegistryMatched: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span>2. Tehsildar & Sub-Divisional Magistrate (SDM) physical caste register ledger verified.</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.incomeLandholdingVerified}
+                      onChange={(e) => setChecklist({ ...checklist, incomeLandholdingVerified: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span>3. Physical family asset, agricultural landholding, and annual income enquiry confirmed within limits.</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-emerald-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checklist.bonafideEnrollmentValid}
+                      onChange={(e) => setChecklist({ ...checklist, bonafideEnrollmentValid: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span>4. Bonafide higher-education research enrollment verified with University Dean.</span>
+                  </label>
+                </div>
               </div>
 
+              {/* Inspector Details Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Verifying Inspector Name & ID:</label>
+                  <input
+                    type="text"
+                    value={inspectorName}
+                    onChange={(e) => setInspectorName(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Assigned Authority Body:</label>
+                  <input
+                    type="text"
+                    value={assignedAuthority}
+                    onChange={(e) => setAssignedAuthority(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* GPS Geolocation Tag */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Reason for Field Inquiry:</label>
-                <textarea
-                  rows={3}
-                  value={dispatchReason}
-                  onChange={(e) => setDispatchReason(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs"
-                  placeholder="Specify discrepancies in certificate, landholding, or domicile..."
-                  required
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>GPS Geotag Verification Coordinate:</span>
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                    <Navigation className="w-3 h-3" /> Geotag Captured
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={gpsTag}
+                  onChange={(e) => setGpsTag(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 font-mono text-[11px]"
                 />
               </div>
 
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                <span>
-                  The field inspection request will be formally routed to the State Tribal Department and District Collectorate with statutory priority.
-                </span>
+              {/* Inspector Remarks */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">On-Ground Verification Findings & Remarks:</label>
+                <textarea
+                  rows={3}
+                  value={fieldRemarks}
+                  onChange={(e) => setFieldRemarks(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-xs"
+                  placeholder="Record summary of physical interview, witness testimony, or document inspection..."
+                />
               </div>
+            </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+            {/* Modal Actions Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setVerifyingApp(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold cursor-pointer text-xs"
+              >
+                Cancel
+              </button>
+
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsDispatchModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                  onClick={() => handleSignOffVerification('flagged_adverse')}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer text-xs flex items-center gap-1.5 shadow-sm"
                 >
-                  Cancel
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Flag Adverse Discrepancy</span>
                 </button>
+
                 <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer flex items-center gap-1.5"
+                  type="button"
+                  onClick={() => handleSignOffVerification('verified_genuine')}
+                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer text-xs flex items-center gap-1.5 shadow-sm"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Transmit Order</span>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Certify Genuine & Clear</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

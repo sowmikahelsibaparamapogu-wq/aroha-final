@@ -17,7 +17,11 @@ import {
   ArrowUpRight,
   Sparkles,
   Grid3X3,
-  List
+  List,
+  Map as MapIcon,
+  Flame,
+  Globe2,
+  PieChart
 } from 'lucide-react';
 import { Application } from '../types/scholarship';
 import { MASTER_36_INDIAN_STATES, StateRecord } from '../data/indianStates';
@@ -35,7 +39,72 @@ export interface StateAggregatedData extends StateRecord {
   highRisk: number;
   candidates: Application[];
   districtCounts: Record<string, number>;
+  concentrationLevel: 'very_high' | 'high' | 'moderate' | 'emerging' | 'zero';
 }
+
+// Geometric coordinates for Indian states / UTs on the interactive visual map
+interface StateSvgNode {
+  code: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rx?: number;
+  zone: string;
+}
+
+const INDIA_GEO_NODES: StateSvgNode[] = [
+  // North
+  { code: 'JK', name: 'Jammu & Kashmir', x: 190, y: 35, w: 105, h: 48, zone: 'North' },
+  { code: 'LA', name: 'Ladakh', x: 275, y: 20, w: 85, h: 48, zone: 'North' },
+  { code: 'HP', name: 'Himachal Pradesh', x: 230, y: 92, w: 80, h: 42, zone: 'North' },
+  { code: 'PB', name: 'Punjab', x: 165, y: 95, w: 60, h: 42, zone: 'North' },
+  { code: 'UK', name: 'Uttarakhand', x: 285, y: 125, w: 75, h: 42, zone: 'North' },
+  { code: 'HR', name: 'Haryana', x: 205, y: 142, w: 62, h: 42, zone: 'North' },
+  { code: 'DL', name: 'Delhi', x: 250, y: 162, w: 38, h: 28, zone: 'North' },
+
+  // West
+  { code: 'RJ', name: 'Rajasthan', x: 110, y: 175, w: 110, h: 72, zone: 'West' },
+  { code: 'GJ', name: 'Gujarat', x: 80, y: 260, w: 105, h: 68, zone: 'West' },
+  { code: 'MH', name: 'Maharashtra', x: 195, y: 340, w: 120, h: 78, zone: 'West' },
+  { code: 'GA', name: 'Goa', x: 175, y: 440, w: 42, h: 28, zone: 'West' },
+
+  // Central
+  { code: 'MP', name: 'Madhya Pradesh', x: 235, y: 235, w: 128, h: 75, zone: 'Central' },
+  { code: 'CG', name: 'Chhattisgarh', x: 345, y: 300, w: 82, h: 75, zone: 'Central' },
+
+  // East
+  { code: 'UP', name: 'Uttar Pradesh', x: 295, y: 175, w: 115, h: 65, zone: 'East' },
+  { code: 'BR', name: 'Bihar', x: 420, y: 195, w: 85, h: 52, zone: 'East' },
+  { code: 'JH', name: 'Jharkhand', x: 415, y: 260, w: 82, h: 54, zone: 'East' },
+  { code: 'OD', name: 'Odisha', x: 395, y: 335, w: 90, h: 65, zone: 'East' },
+  { code: 'WB', name: 'West Bengal', x: 490, y: 260, w: 75, h: 65, zone: 'East' },
+
+  // South
+  { code: 'TG', name: 'Telangana', x: 275, y: 380, w: 95, h: 62, zone: 'South' },
+  { code: 'AP', name: 'Andhra Pradesh', x: 285, y: 445, w: 105, h: 65, zone: 'South' },
+  { code: 'KA', name: 'Karnataka', x: 195, y: 428, w: 85, h: 80, zone: 'South' },
+  { code: 'KL', name: 'Kerala', x: 215, y: 520, w: 55, h: 75, zone: 'South' },
+  { code: 'TN', name: 'Tamil Nadu', x: 275, y: 518, w: 85, h: 78, zone: 'South' },
+
+  // North-East
+  { code: 'SK', name: 'Sikkim', x: 495, y: 170, w: 46, h: 32, zone: 'North-East' },
+  { code: 'AS', name: 'Assam', x: 575, y: 185, w: 85, h: 48, zone: 'North-East' },
+  { code: 'AR', name: 'Arunachal Pradesh', x: 625, y: 140, w: 90, h: 44, zone: 'North-East' },
+  { code: 'ML', name: 'Meghalaya', x: 570, y: 236, w: 68, h: 32, zone: 'North-East' },
+  { code: 'NL', name: 'Nagaland', x: 670, y: 200, w: 52, h: 34, zone: 'North-East' },
+  { code: 'MN', name: 'Manipur', x: 660, y: 238, w: 52, h: 34, zone: 'North-East' },
+  { code: 'MZ', name: 'Mizoram', x: 630, y: 275, w: 48, h: 40, zone: 'North-East' },
+  { code: 'TR', name: 'Tripura', x: 580, y: 272, w: 46, h: 34, zone: 'North-East' },
+
+  // Union Territories Islands
+  { code: 'AN', name: 'Andaman & Nicobar', x: 655, y: 460, w: 72, h: 60, zone: 'Union Territory' },
+  { code: 'LD', name: 'Lakshadweep', x: 135, y: 515, w: 62, h: 45, zone: 'Union Territory' },
+  { code: 'PY', name: 'Puducherry', x: 365, y: 535, w: 55, h: 28, zone: 'Union Territory' },
+  { code: 'CH', name: 'Chandigarh', x: 195, y: 130, w: 32, h: 20, zone: 'Union Territory' },
+  { code: 'DH', name: 'Dadra & Nagar Haveli and Daman & Diu', x: 95, y: 328, w: 85, h: 28, zone: 'Union Territory' },
+];
 
 export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
   applications,
@@ -46,7 +115,8 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
   const [layer, setLayer] = useState<'density' | 'pending' | 'risk' | 'approved'>('density');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [displayMode, setDisplayMode] = useState<'cards' | 'table'>('cards');
+  const [displayMode, setDisplayMode] = useState<'map' | 'cards' | 'table'>('map');
+  const [schemeFilter, setSchemeFilter] = useState<'ALL' | 'NFST' | 'NOS'>('ALL');
 
   // Compute live dynamic statistics for all 36 States and UTs from current applications
   const stateAggregatedData: StateAggregatedData[] = useMemo(() => {
@@ -54,8 +124,10 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
       const stateNorm = state.name.toLowerCase();
       const codeNorm = state.code.toLowerCase();
 
-      // Find matching applications for this state
+      // Find matching applications for this state (optionally filtered by scheme)
       const matchingApps = applications.filter((app) => {
+        if (schemeFilter !== 'ALL' && app.scheme !== schemeFilter) return false;
+
         const appState = (app.applicant?.state || '').toLowerCase();
         const appDomicile = (app.applicant?.domicileState || '').toLowerCase();
         return (
@@ -85,6 +157,13 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
         districtCounts[dist] = (districtCounts[dist] || 0) + 1;
       });
 
+      // Calculate concentration tier
+      let concentrationLevel: StateAggregatedData['concentrationLevel'] = 'zero';
+      if (applicants >= 8) concentrationLevel = 'very_high';
+      else if (applicants >= 4) concentrationLevel = 'high';
+      else if (applicants >= 2) concentrationLevel = 'moderate';
+      else if (applicants >= 1) concentrationLevel = 'emerging';
+
       return {
         ...state,
         applicants,
@@ -93,9 +172,17 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
         highRisk,
         candidates: matchingApps,
         districtCounts,
+        concentrationLevel,
       };
     });
-  }, [applications]);
+  }, [applications, schemeFilter]);
+
+  // Fast lookup map by code
+  const stateByCodeMap = useMemo(() => {
+    const map = new Map<string, StateAggregatedData>();
+    stateAggregatedData.forEach((s) => map.set(s.code, s));
+    return map;
+  }, [stateAggregatedData]);
 
   // Filter states by zone and search query
   const filteredStates = useMemo(() => {
@@ -143,20 +230,57 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
     { id: 'Union Territory', label: 'UTs', count: 8 },
   ];
 
+  // Helper color function based on concentration level and active layer
+  const getNodeColor = (data?: StateAggregatedData, isSelected = false) => {
+    if (isSelected) return { bg: '#f59e0b', text: '#020617', stroke: '#fbbf24', border: '#fef08a' }; // Vibrant Golden Amber for selected
+    if (!data || data.applicants === 0) {
+      return { bg: '#0f172a', text: '#94a3b8', stroke: '#1e293b', border: '#334155' };
+    }
+
+    if (layer === 'pending') {
+      if (data.pending > 3) return { bg: '#b45309', text: '#ffffff', stroke: '#f59e0b', border: '#fde68a' };
+      return { bg: '#78350f', text: '#fef3c7', stroke: '#d97706', border: '#fde68a' };
+    }
+
+    if (layer === 'risk') {
+      if (data.highRisk > 0) return { bg: '#be123c', text: '#ffffff', stroke: '#fb7185', border: '#fecdd3' };
+      return { bg: '#047857', text: '#ecfdf5', stroke: '#10b981', border: '#a7f3d0' };
+    }
+
+    if (layer === 'approved') {
+      if (data.approved > 3) return { bg: '#4338ca', text: '#ffffff', stroke: '#818cf8', border: '#c7d2fe' };
+      return { bg: '#312e81', text: '#e0e7ff', stroke: '#6366f1', border: '#c7d2fe' };
+    }
+
+    // Default: Applicant Concentration (Density)
+    switch (data.concentrationLevel) {
+      case 'very_high': // 8+ applicants
+        return { bg: '#047857', text: '#ffffff', stroke: '#34d399', border: '#6ee7b7' }; // Deep glowing emerald
+      case 'high': // 4-7 applicants
+        return { bg: '#0284c7', text: '#ffffff', stroke: '#38bdf8', border: '#bae6fd' }; // Radiant electric cyan
+      case 'moderate': // 2-3 applicants
+        return { bg: '#7c3aed', text: '#ffffff', stroke: '#a78bfa', border: '#ddd6fe' }; // Vivid purple jewel
+      case 'emerging': // 1 applicant
+        return { bg: '#0d9488', text: '#ffffff', stroke: '#2dd4bf', border: '#99f6e4' }; // Teal turquoise
+      default:
+        return { bg: '#0f172a', text: '#94a3b8', stroke: '#1e293b', border: '#334155' };
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Banner with Total Statistics */}
-      <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* Top Banner with Total Statistics */}
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-800/40">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-xs font-black mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-black mb-2">
             <Compass className="w-3.5 h-3.5 text-amber-300" />
-            <span>MINISTRY OF TRIBAL AFFAIRS • NATIONAL GEOSPATIAL REGISTRY</span>
+            <span>MINISTRY OF TRIBAL AFFAIRS • GEOSPATIAL INTELLIGENCE REGISTRY</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-            GIS Scholarship Map (All 36 States & UTs)
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
+            <span>Visual Geospatial Map & Concentration</span>
           </h2>
           <p className="text-emerald-100 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
-            Dynamic Article 342 tribal territory intelligence tracking NFST fellowships and NOS overseas admissions across all 28 States and 8 Union Territories.
+            Dynamic Article 342 tribal territory intelligence tracking NFST fellowships and NOS overseas admissions across all 28 States and 8 Union Territories with chromatic density heatmaps.
           </p>
         </div>
 
@@ -175,55 +299,30 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
             <div className="text-xl font-black text-amber-400">{grandTotals.totalPending}</div>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center">
-            <div className="text-[10px] text-emerald-200 font-bold uppercase">Sanctioned</div>
+            <div className="text-[10px] text-emerald-200 font-bold uppercase">DBT Sanctioned</div>
             <div className="text-xl font-black text-emerald-300">{grandTotals.totalApproved}</div>
           </div>
         </div>
       </div>
 
-      {/* Zero/Blank State Notice when no applications are loaded */}
-      {applications.length === 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
-              <Compass className="w-5 h-5 text-amber-800" />
-            </div>
-            <div>
-              <div className="font-black text-sm">Geospatial Registry: 0 Applications Currently Ingested</div>
-              <p className="text-xs text-amber-800">
-                All 36 States and Union Territories are primed for intake. Add a preset to ingest candidate dossiers into state clusters.
-              </p>
-            </div>
-          </div>
-          {onOpenPresetModal && (
-            <button
-              type="button"
-              onClick={onOpenPresetModal}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-emerald-600 text-white font-black text-xs hover:from-amber-700 hover:to-emerald-700 transition cursor-pointer shadow-sm shrink-0 flex items-center gap-1.5"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>➕ Add Preset to Populate Map</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Control Bar: Zone Filter Pills, Heatmap Layer Toggles, Search Box, View Toggle */}
+      {/* Control Bar: Layer Selectors, Scheme Filter, View Mode, Search */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-md space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
+          
           {/* Heatmap Layer Selectors */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
             <Layers className="w-4 h-4 text-slate-500 ml-2" />
             <button
               type="button"
               onClick={() => setLayer('density')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
                 layer === 'density'
                   ? 'bg-emerald-800 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Applicant Density
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>Applicant Concentration</span>
             </button>
             <button
               type="button"
@@ -260,13 +359,44 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
             </button>
           </div>
 
-          {/* Search Box & Grid/Table Toggle */}
+          {/* Scheme Filter Toggle (NFST vs NOS) */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setSchemeFilter('ALL')}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${
+                schemeFilter === 'ALL' ? 'bg-white shadow-xs text-emerald-900' : 'text-slate-600'
+              }`}
+            >
+              All Schemes
+            </button>
+            <button
+              type="button"
+              onClick={() => setSchemeFilter('NFST')}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${
+                schemeFilter === 'NFST' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              NFST Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setSchemeFilter('NOS')}
+              className={`px-2.5 py-1 rounded-xl transition cursor-pointer ${
+                schemeFilter === 'NOS' ? 'bg-purple-800 text-white shadow-xs' : 'text-slate-600'
+              }`}
+            >
+              NOS Only
+            </button>
+          </div>
+
+          {/* Search Box & View Mode Toggle (Map, Cards, Table) */}
           <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative flex-1 sm:w-56">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search state, tribe (e.g. Gond, Ao), district..."
+                placeholder="Search state, tribe, district..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
@@ -276,29 +406,42 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 type="button"
+                onClick={() => setDisplayMode('map')}
+                className={`p-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                  displayMode === 'map' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Visual India Geospatial Map"
+              >
+                <MapIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">Visual Map</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setDisplayMode('cards')}
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  displayMode === 'cards' ? 'bg-white shadow-xs text-emerald-800' : 'text-slate-500 hover:text-slate-800'
+                className={`p-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                  displayMode === 'cards' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Geospatial Cards View"
               >
                 <Grid3X3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Cards</span>
               </button>
               <button
                 type="button"
                 onClick={() => setDisplayMode('table')}
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  displayMode === 'table' ? 'bg-white shadow-xs text-emerald-800' : 'text-slate-500 hover:text-slate-800'
+                className={`p-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                  displayMode === 'table' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Matrix Table View"
               >
                 <List className="w-4 h-4" />
+                <span className="hidden sm:inline">Table</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Zone Filter Tabs (All 36 States/UTs categorised cleanly) */}
+        {/* Zone Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-thin">
           <span className="text-[11px] font-black uppercase text-slate-400 mr-1 shrink-0">Zone:</span>
           {zones.map((zone) => {
@@ -324,13 +467,207 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
       {/* Main Content Area: Map / Grid on Left, Selected State Inspector on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left: 36 State Grid / Matrix (lg:col-span-7) */}
+        {/* Left: Visual Map or Cards or Table (lg:col-span-7) */}
         <div className="lg:col-span-7 space-y-4">
-          {displayMode === 'cards' ? (
-            <div className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-emerald-950/40 shadow-inner relative overflow-hidden">
-              {/* Watermark grid effect */}
-              <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none" />
+          {displayMode === 'map' ? (
+            /* VISUAL COLORFUL GEOSPATIAL MAP */
+            <div className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-emerald-900/60 shadow-2xl relative overflow-hidden">
+              {/* Radial gradient background */}
+              <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
 
+              {/* Map Title & Concentration Legend */}
+              <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="font-black text-amber-300 flex items-center gap-2 text-xs">
+                  <Flame className="w-4 h-4 text-amber-400" />
+                  <span>Applicant Concentration Density Heatmap (All India)</span>
+                </div>
+                
+                {/* Concentration Scale Legend */}
+                <div className="flex items-center gap-2 text-[10px] bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-white">
+                  <span className="text-slate-400 font-bold">Density Scale:</span>
+                  <span className="flex items-center gap-1 font-bold text-emerald-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> High (8+)
+                  </span>
+                  <span className="flex items-center gap-1 font-bold text-sky-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Mid (4-7)
+                  </span>
+                  <span className="flex items-center gap-1 font-bold text-purple-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Mod (2-3)
+                  </span>
+                  <span className="flex items-center gap-1 font-bold text-teal-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" /> 1
+                  </span>
+                  <span className="flex items-center gap-1 text-slate-500">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-800 inline-block" /> 0
+                  </span>
+                </div>
+              </div>
+
+              {/* Interactive SVG Geospatial Map of India */}
+              <div className="relative z-10 w-full overflow-x-auto pb-2">
+                <svg
+                  viewBox="0 0 750 600"
+                  className="w-full h-auto min-w-[580px] max-h-[520px] select-none"
+                  style={{ filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.5))' }}
+                >
+                  <defs>
+                    <linearGradient id="gradEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#047857" />
+                    </linearGradient>
+                    <linearGradient id="gradSky" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#0369a1" />
+                    </linearGradient>
+                    <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#a855f7" />
+                      <stop offset="100%" stopColor="#6b21a8" />
+                    </linearGradient>
+                    <linearGradient id="gradAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="100%" stopColor="#d97706" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Draw Regional Linkage Contour Guides */}
+                  <path
+                    d="M 230 60 L 250 160 L 280 240 L 300 380 L 270 520"
+                    fill="none"
+                    stroke="rgba(16, 185, 129, 0.15)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                  <path
+                    d="M 160 260 L 300 240 L 450 260 L 600 220"
+                    fill="none"
+                    stroke="rgba(16, 185, 129, 0.15)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+
+                  {/* Render All Geospatial Nodes */}
+                  {INDIA_GEO_NODES.map((node) => {
+                    const data = stateByCodeMap.get(node.code);
+                    const isSelected = selectedState.code === node.code;
+                    const colors = getNodeColor(data, isSelected);
+                    const count = data?.applicants || 0;
+                    const hasHighConcentration = count >= 4;
+
+                    return (
+                      <g
+                        key={node.code}
+                        onClick={() => setSelectedStateName(node.name)}
+                        className="cursor-pointer group"
+                      >
+                        {/* Pulsing Concentration Ripple for top active states */}
+                        {hasHighConcentration && !isSelected && (
+                          <rect
+                            x={node.x - 4}
+                            y={node.y - 4}
+                            width={node.w + 8}
+                            h={node.h + 8}
+                            rx={14}
+                            fill="none"
+                            stroke="#34d399"
+                            strokeWidth="1.5"
+                            className="animate-ping opacity-30"
+                          />
+                        )}
+
+                        {/* Selected Outline Glow */}
+                        {isSelected && (
+                          <rect
+                            x={node.x - 3}
+                            y={node.y - 3}
+                            width={node.w + 6}
+                            height={node.h + 6}
+                            rx={14}
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="2.5"
+                            className="animate-pulse"
+                          />
+                        )}
+
+                        {/* Node Card Rectangle */}
+                        <rect
+                          x={node.x}
+                          y={node.y}
+                          width={node.w}
+                          height={node.h}
+                          rx={12}
+                          fill={colors.bg}
+                          stroke={colors.stroke}
+                          strokeWidth={isSelected ? 2 : 1.2}
+                          className="transition-all duration-200 group-hover:brightness-125"
+                        />
+
+                        {/* State Code */}
+                        <text
+                          x={node.x + 10}
+                          y={node.y + 18}
+                          fontSize="11"
+                          fontWeight="900"
+                          fontFamily="Inter, sans-serif"
+                          fill={colors.text}
+                          className="pointer-events-none"
+                        >
+                          {node.code}
+                        </text>
+
+                        {/* State Name Short Label */}
+                        <text
+                          x={node.x + 10}
+                          y={node.y + 32}
+                          fontSize="8.5"
+                          fontWeight="600"
+                          fontFamily="Inter, sans-serif"
+                          fill={isSelected ? '#020617' : '#94a3b8'}
+                          className="pointer-events-none"
+                        >
+                          {node.name.length > 13 ? `${node.name.slice(0, 11)}..` : node.name}
+                        </text>
+
+                        {/* Applicant Concentration Badge Bubble */}
+                        <circle
+                          cx={node.x + node.w - 14}
+                          cy={node.y + 14}
+                          r={count > 0 ? (count >= 10 ? 11 : 9.5) : 7}
+                          fill={count > 0 ? (isSelected ? '#020617' : colors.stroke) : '#1e293b'}
+                          className="transition-all"
+                        />
+                        <text
+                          x={node.x + node.w - 14}
+                          y={node.y + 17.5}
+                          textAnchor="middle"
+                          fontSize="8.5"
+                          fontWeight="900"
+                          fontFamily="Inter, sans-serif"
+                          fill={count > 0 ? (isSelected ? '#f59e0b' : '#ffffff') : '#64748b'}
+                          className="pointer-events-none"
+                        >
+                          {count}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              {/* Map Footer Info */}
+              <div className="relative z-10 flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-900">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Interactive Map: Click any state block to immediately inspect candidate dossiers.</span>
+                </span>
+                <span className="text-emerald-400 font-bold font-mono">
+                  {grandTotals.statesWithApplicants} Active State Clusters
+                </span>
+              </div>
+            </div>
+          ) : displayMode === 'cards' ? (
+            /* Cards View */
+            <div className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-emerald-950/40 shadow-inner relative overflow-hidden">
               <div className="relative z-10 flex items-center justify-between mb-3 text-xs text-white">
                 <div className="font-black text-amber-300 flex items-center gap-2">
                   <Compass className="w-4 h-4" />
@@ -341,7 +678,6 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                 </div>
               </div>
 
-              {/* 36 States Responsive Cluster Grid */}
               <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[580px] overflow-y-auto pr-1">
                 {filteredStates.map((state) => {
                   const isSelected = selectedState.name === state.name;
@@ -382,7 +718,6 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                         </span>
                       </div>
 
-                      {/* Counts */}
                       <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px]">
                         <span className="font-bold">
                           {hasData ? (
@@ -411,7 +746,7 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
               </div>
             </div>
           ) : (
-            /* Table Matrix View of All 36 States */
+            /* Table Matrix View */
             <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto max-h-[580px] overflow-y-auto">
                 <table className="w-full text-left text-xs">
@@ -463,14 +798,13 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
           )}
         </div>
 
-        {/* Right: State Dossier Inspector (lg:col-span-5) */}
+        {/* Right: Selected State Dossier Inspector (lg:col-span-5) */}
         <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-5">
-          {/* Header of Inspector */}
           <div className="border-b border-slate-200 pb-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-emerald-700" />
-                STATE DOSSIER INSPECTOR
+                STATE GEOSPATIAL DOSSIER
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 font-mono font-black text-xs">
                 {selectedState.code} • {selectedState.zone}
@@ -480,8 +814,12 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
             <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
               {selectedState.name}
             </h3>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Capital: <strong className="text-slate-800">{selectedState.capital}</strong>
+            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+              <span>Capital: <strong className="text-slate-800">{selectedState.capital}</strong></span>
+              <span>•</span>
+              <span className="font-bold text-emerald-800">
+                {selectedState.concentrationLevel.replace('_', ' ').toUpperCase()} DENSITY
+              </span>
             </div>
           </div>
 
@@ -489,7 +827,7 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
               <div className="flex items-center justify-between text-xs text-emerald-800 font-bold">
-                <span>Total Applied</span>
+                <span>Concentration</span>
                 <Users className="w-4 h-4" />
               </div>
               <div className="text-2xl font-black text-emerald-950 mt-1">
@@ -506,7 +844,7 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
               <div className="text-2xl font-black text-indigo-950 mt-1">
                 {selectedState.approved}
               </div>
-              <div className="text-[10px] text-indigo-700">Direct Benefit Sanctioned</div>
+              <div className="text-[10px] text-indigo-700">Direct Benefit Remitted</div>
             </div>
 
             <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
@@ -553,7 +891,7 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
             </div>
           </div>
 
-          {/* Key Tribal Districts */}
+          {/* Key Tribal Districts & Concentration */}
           <div className="space-y-1.5">
             <div className="text-xs font-black text-slate-800 uppercase tracking-wide">
               Key ITDA Headquarters & Districts:

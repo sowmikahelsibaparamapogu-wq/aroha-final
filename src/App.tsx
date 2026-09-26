@@ -947,7 +947,12 @@ export default function App() {
 
             {/* Feature 16: Side-by-Side Document Comparison Viewer */}
             {activeTab === 'doc_compare' && (
-              <DocumentComparisonViewer application={currentApplication || undefined} />
+              <DocumentComparisonViewer 
+                application={currentApplication || undefined}
+                allApplications={applications}
+                selectedAppId={selectedAppId}
+                onSelectApplication={setSelectedAppId}
+              />
             )}
 
             {/* Feature 17: Automated MIS Report Generator */}

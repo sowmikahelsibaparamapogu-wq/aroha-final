@@ -65,9 +65,20 @@ export const Header: React.FC<HeaderProps> = ({
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSPrompt, setShowIOSPrompt] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === activeLang) || SUPPORTED_LANGUAGES[0];
+
+  const filteredLanguages = SUPPORTED_LANGUAGES.filter((item) => {
+    if (!langSearch.trim()) return true;
+    const q = langSearch.toLowerCase().trim();
+    return (
+      item.label.toLowerCase().includes(q) ||
+      item.nativeName.toLowerCase().includes(q) ||
+      item.code.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <header id="main-header" className="bg-white border-b border-emerald-900/15 sticky top-0 z-40 shadow-xs">
@@ -138,28 +149,74 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {isLangOpen && (
-              <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-emerald-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 border-b border-emerald-100">
-                  {t('selectLanguage', 'Select Language')}
+              <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-2xl shadow-2xl border border-emerald-300/80 p-2 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-2 py-1.5 flex items-center justify-between border-b border-emerald-100 mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Languages className="w-3.5 h-3.5 text-emerald-700" />
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-900">
+                      All 29 Languages
+                    </span>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                    22 Const. + 7 Tribal
+                  </span>
                 </div>
-                {SUPPORTED_LANGUAGES.map((item) => (
-                  <button
-                    key={item.code}
-                    type="button"
-                    onClick={() => {
-                      onLanguageChange(item.code);
-                      setIsLangOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition cursor-pointer ${
-                      activeLang === item.code
-                        ? 'bg-emerald-100 text-emerald-950 font-bold'
-                        : 'text-slate-700 hover:bg-emerald-50'
-                    }`}
-                  >
-                    <span>{item.nativeName}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">{item.label}</span>
-                  </button>
-                ))}
+
+                {/* Search input for 29 languages */}
+                <div className="px-1 mb-2">
+                  <input
+                    type="text"
+                    value={langSearch}
+                    onChange={(e) => setLangSearch(e.target.value)}
+                    placeholder="Search 29 languages (e.g. Gondi, Tamil)..."
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-slate-50 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Scrollable List */}
+                <div className="max-h-72 overflow-y-auto space-y-0.5 pr-0.5 divide-y divide-slate-100">
+                  {filteredLanguages.map((item) => {
+                    const isSelected = activeLang === item.code;
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          onLanguageChange(item.code);
+                          setIsLangOpen(false);
+                          setLangSearch('');
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                            : 'text-slate-800 hover:bg-emerald-50'
+                        }`}
+                      >
+                        <div>
+                          <span className="font-semibold block">{item.nativeName}</span>
+                          <span className={`text-[10px] ${isSelected ? 'text-emerald-100' : 'text-slate-500'}`}>
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                          isSelected
+                            ? 'bg-emerald-950 text-emerald-200'
+                            : item.group === 'Indigenous Tribal'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {item.code.toUpperCase()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {filteredLanguages.length === 0 && (
+                    <div className="text-center py-4 text-xs text-slate-400">
+                      No matching language found
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

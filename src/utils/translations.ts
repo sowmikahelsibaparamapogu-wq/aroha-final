@@ -1,23 +1,57 @@
-export type LanguageCode = 'en' | 'hi' | 'te' | 'or' | 'bn' | 'sat' | 'mr';
+import { ADDITIONAL_22_TRANSLATIONS, ExtendedLangCode } from './allLanguagesTranslations';
+
+export type CoreLanguageCode = 'en' | 'hi' | 'te' | 'or' | 'bn' | 'sat' | 'mr';
+
+export type LanguageCode = 
+  | CoreLanguageCode 
+  | 'ta' | 'gu' | 'kn' | 'ml' | 'pa' | 'as' | 'ur' 
+  | 'mai' | 'sa' | 'ks' | 'ne' | 'kok' | 'sd' | 'doi' 
+  | 'mni' | 'brx' | 'gon' | 'bhi' | 'kru' | 'hoc' | 'mun' | 'kha';
 
 export interface LanguageOption {
   code: LanguageCode;
   label: string;
   nativeName: string;
-  flag?: string;
+  script?: string;
+  group?: 'Constitutional (8th Schedule)' | 'Indigenous Tribal';
 }
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: 'en', label: 'English', nativeName: 'English' },
-  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'te', label: 'Telugu', nativeName: 'తెలుగు' },
-  { code: 'or', label: 'Odia', nativeName: 'ଓଡ଼ିଆ' },
-  { code: 'bn', label: 'Bengali', nativeName: 'বাংলা' },
-  { code: 'sat', label: 'Santhali', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ' },
-  { code: 'mr', label: 'Marathi', nativeName: 'मराठी' },
+  // 1-7: Core Supported
+  { code: 'en', label: 'English', nativeName: 'English', group: 'Constitutional (8th Schedule)' },
+  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी', group: 'Constitutional (8th Schedule)' },
+  { code: 'te', label: 'Telugu', nativeName: 'తెలుగు', group: 'Constitutional (8th Schedule)' },
+  { code: 'or', label: 'Odia', nativeName: 'ଓଡ଼ିଆ', group: 'Constitutional (8th Schedule)' },
+  { code: 'bn', label: 'Bengali', nativeName: 'বাংলা', group: 'Constitutional (8th Schedule)' },
+  { code: 'sat', label: 'Santhali', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ', group: 'Indigenous Tribal' },
+  { code: 'mr', label: 'Marathi', nativeName: 'मराठी', group: 'Constitutional (8th Schedule)' },
+  // 8-22: Eighth Schedule Indian Languages
+  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்', group: 'Constitutional (8th Schedule)' },
+  { code: 'gu', label: 'Gujarati', nativeName: 'ગુજરાતી', group: 'Constitutional (8th Schedule)' },
+  { code: 'kn', label: 'Kannada', nativeName: 'ಕನ್ನಡ', group: 'Constitutional (8th Schedule)' },
+  { code: 'ml', label: 'Malayalam', nativeName: 'മലയാളം', group: 'Constitutional (8th Schedule)' },
+  { code: 'pa', label: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', group: 'Constitutional (8th Schedule)' },
+  { code: 'as', label: 'Assamese', nativeName: 'অসমীয়া', group: 'Constitutional (8th Schedule)' },
+  { code: 'ur', label: 'Urdu', nativeName: 'اردو', group: 'Constitutional (8th Schedule)' },
+  { code: 'mai', label: 'Maithili', nativeName: 'मैथिली', group: 'Constitutional (8th Schedule)' },
+  { code: 'sa', label: 'Sanskrit', nativeName: 'संस्कृतम्', group: 'Constitutional (8th Schedule)' },
+  { code: 'ks', label: 'Kashmiri', nativeName: 'کٲشُر / कॉशुर', group: 'Constitutional (8th Schedule)' },
+  { code: 'ne', label: 'Nepali', nativeName: 'नेपाली', group: 'Constitutional (8th Schedule)' },
+  { code: 'kok', label: 'Konkani', nativeName: 'कोंकणी', group: 'Constitutional (8th Schedule)' },
+  { code: 'sd', label: 'Sindhi', nativeName: 'سنڌي / सिंधी', group: 'Constitutional (8th Schedule)' },
+  { code: 'doi', label: 'Dogri', nativeName: 'डोगरी', group: 'Constitutional (8th Schedule)' },
+  { code: 'mni', label: 'Manipuri', nativeName: 'মৈতৈলোন্', group: 'Constitutional (8th Schedule)' },
+  { code: 'brx', label: 'Bodo', nativeName: 'बड़ो', group: 'Constitutional (8th Schedule)' },
+  // 23-29: Major Indigenous Tribal Languages of Bharat
+  { code: 'gon', label: 'Gondi', nativeName: 'गोंडी / 𑴎𑴽𑴟𑵀𑴚𑴳', group: 'Indigenous Tribal' },
+  { code: 'bhi', label: 'Bhili', nativeName: 'भीली', group: 'Indigenous Tribal' },
+  { code: 'kru', label: 'Kurukh (Oraon)', nativeName: 'कुड़ुख़ / ᱳᱨᱟᱶ', group: 'Indigenous Tribal' },
+  { code: 'hoc', label: 'Ho', nativeName: 'ᱦᱳ / 𑢹𑣉𑣉', group: 'Indigenous Tribal' },
+  { code: 'mun', label: 'Mundari', nativeName: 'मुंडारी / ᱢᱩᱱᱰᱟᱹᱨᱤ', group: 'Indigenous Tribal' },
+  { code: 'kha', label: 'Khasi', nativeName: 'Ka Ktien Khasi', group: 'Indigenous Tribal' },
 ];
 
-export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
+export const TRANSLATIONS: Record<CoreLanguageCode, Record<string, string>> = {
   en: {
     // Header & Meta
     portalName: 'AROHA',
@@ -2251,8 +2285,19 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 };
 
 export function getTranslation(key: string, lang: LanguageCode = 'en'): string {
-  if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
-    return TRANSLATIONS[lang][key];
+  // Check core 7 languages
+  const coreLang = lang as CoreLanguageCode;
+  if (TRANSLATIONS[coreLang] && TRANSLATIONS[coreLang][key]) {
+    return TRANSLATIONS[coreLang][key];
+  }
+  // Check extended 22 languages
+  const extLang = lang as ExtendedLangCode;
+  if (ADDITIONAL_22_TRANSLATIONS[extLang] && ADDITIONAL_22_TRANSLATIONS[extLang][key]) {
+    return ADDITIONAL_22_TRANSLATIONS[extLang][key];
+  }
+  // Fallback to Hindi if not English for Indian languages, or English
+  if (lang !== 'en' && TRANSLATIONS.hi && TRANSLATIONS.hi[key]) {
+    return TRANSLATIONS.hi[key];
   }
   return TRANSLATIONS.en[key] || key;
 }

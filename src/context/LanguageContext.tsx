@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { LanguageCode, TRANSLATIONS, getTranslation } from '../utils/translations';
+import { LanguageCode, SUPPORTED_LANGUAGES, getTranslation } from '../utils/translations';
 
 interface LanguageContextType {
   lang: LanguageCode;
@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType>({
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<LanguageCode>(() => {
     const saved = localStorage.getItem('aroha_lang');
-    if (saved && ['en', 'hi', 'te', 'or', 'bn', 'sat', 'mr'].includes(saved)) {
+    if (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved)) {
       return saved as LanguageCode;
     }
     return 'en';
