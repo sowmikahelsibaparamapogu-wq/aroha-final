@@ -387,11 +387,19 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
         `Application #${appNum} stored securely on device. Will auto-sync when network reconnects.`
       );
     } else {
-      onToast(
-        'success',
-        'Application Submitted Successfully',
-        `Application #${appNum} submitted. AI OCR Verification complete (${evaluation.overallConfidence}% confidence).`
-      );
+      if (evaluation.passed && evaluation.overallConfidence >= 80) {
+        onToast(
+          'success',
+          'Application Submitted Successfully',
+          `Application #${appNum} submitted. Statutory criteria fully verified (${evaluation.overallConfidence}% AI OCR confidence).`
+        );
+      } else {
+        onToast(
+          'warning',
+          'Application Submitted with Discrepancies',
+          `Application #${appNum} submitted. Flagged for officer review due to discrepancies (${evaluation.overallConfidence}% confidence, ${evaluation.riskScore} Risk).`
+        );
+      }
     }
 
     onSubmitSuccess(finalizedApp);

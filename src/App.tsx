@@ -361,6 +361,13 @@ export default function App() {
     addToast('success', 'Batch Approved', `${ids.length} applications sanctioned successfully.`);
   };
 
+  // Single application update (e.g., from SLA Escalation Pipeline or Field Verification)
+  const handleUpdateSingleApplication = async (updatedApp: Application) => {
+    const updated = applications.map((app) => (app.id === updatedApp.id ? updatedApp : app));
+    setApplications(updated);
+    await StorageEngine.saveApplications(updated);
+  };
+
   // Dynamic Policy & Parameter Update: when given update, recalculate all parameters and features dynamically
   const handleUpdateParameters = async (params: {
     incomeCeiling?: number;
@@ -892,6 +899,7 @@ export default function App() {
                   setActiveTab('profile_360');
                 }}
                 onOpenPresetModal={() => setIsPresetModalOpen(true)}
+                onUpdateApplication={handleUpdateSingleApplication}
               />
             )}
 

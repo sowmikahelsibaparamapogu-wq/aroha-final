@@ -279,27 +279,72 @@ export function evaluateApplication(
     );
   }
 
-  // Calculate Overall Confidence %
-  const overallConfidence = totalConfidenceWeight > 0 
-    ? Math.round((confidencePoints / totalConfidenceWeight) * 100)
-    : 70;
-
-  // Determine Human Review trigger
+  // Determine Human Review trigger & critical deficiencies
   const hasCriticalDeficiency = deficiencies.some((d) => d.severity === 'critical');
+
+  // Rigorous Confidence Score Calculation:
+  // Must judge carefully after submission. Never give 99% or high confidence to wrong applications!
+  let evaluatedConfidence = 98;
+
+  // Penalize missing mandatory documents: -25% each
+  const missingDocsCount = deficiencies.filter(d => d.title.toLowerCase().includes('missing')).length;
+  evaluatedConfidence -= missingDocsCount * 25;
+
+  // Penalize document mismatches & OCR errors:
+  const mismatchDocs = documents.filter(d => d.ocrStatus === 'mismatch' || (d.mismatches && d.mismatches.length > 0));
+  for (const mDoc of mismatchDocs) {
+    const mismatchCount = (mDoc.mismatches && mDoc.mismatches.length > 0) ? mDoc.mismatches.length : 1;
+    evaluatedConfidence -= Math.max(30, mismatchCount * 18);
+  }
+
+  // Penalize eligibility failures:
+  if (marks < ruleConfig.eligibility.minQualifyingPercentage) {
+    evaluatedConfidence -= 32;
+  }
+
+  if (ruleConfig.scheme === 'NOS') {
+    const income = applicant?.annualFamilyIncome || 0;
+    if (ruleConfig.eligibility.maxIncomeLimit && income > ruleConfig.eligibility.maxIncomeLimit) {
+      evaluatedConfidence -= 35;
+    }
+    if (ruleConfig.eligibility.requiresUnconditionalOffer && academic?.offerStatus === 'Conditional') {
+      evaluatedConfidence -= 25;
+    }
+    if (ruleConfig.eligibility.maxForeignUniversityQsRank && (academic?.qsWorldRanking || 0) > ruleConfig.eligibility.maxForeignUniversityQsRank) {
+      evaluatedConfidence -= 20;
+    }
+  }
+
+  // Penalize other discrepancies & flags:
+  if (flags.length > 0) {
+    evaluatedConfidence -= (flags.length * 6);
+  }
+
+  // Strict Capping: If application has critical deficiencies or mismatches, cap confidence heavily
+  if (hasCriticalDeficiency || mismatchDocs.length > 0) {
+    // Wrong applications capped strictly at low confidence (15% - 48%)
+    evaluatedConfidence = Math.min(evaluatedConfidence, 45);
+  } else if (flags.length > 0) {
+    evaluatedConfidence = Math.min(evaluatedConfidence, 74);
+  }
+
+  // Clamp overall confidence strictly between 15% and 99%
+  const overallConfidence = Math.max(15, Math.min(99, Math.round(evaluatedConfidence)));
+
   const isBorderline = overallConfidence < ruleConfig.thresholds.humanReviewConfidenceThreshold || flags.length > 0;
   const requiresHumanReview = hasCriticalDeficiency || isBorderline;
 
   let riskScore: 'Low' | 'Medium' | 'High' = 'Low';
-  if (hasCriticalDeficiency) riskScore = 'High';
+  if (hasCriticalDeficiency || mismatchDocs.length > 0 || overallConfidence < 60) riskScore = 'High';
   else if (requiresHumanReview || overallConfidence < 85) riskScore = 'Medium';
 
   let summary = '';
   if (!hasCriticalDeficiency && overallConfidence >= ruleConfig.thresholds.automaticVerificationThreshold) {
     summary = `All statutory eligibility parameters verified successfully against MoTA ${ruleConfig.scheme} rules. High AI OCR confidence (${overallConfidence}%).`;
-  } else if (hasCriticalDeficiency) {
-    summary = `Candidate flagged with ${deficiencies.length} critical eligibility/document discrepancies requiring administrative resolution.`;
+  } else if (hasCriticalDeficiency || mismatchDocs.length > 0) {
+    summary = `Critical discrepancies detected: ${deficiencies.length} deficiency notice(s) generated. Low verification confidence (${overallConfidence}%). Flagged for mandatory officer scrutiny.`;
   } else {
-    summary = `Application fulfills baseline parameters with ${flags.length} borderline items marked for Scrutiny Committee review.`;
+    summary = `Application fulfills baseline parameters with ${flags.length} borderline items marked for Scrutiny Committee review. Verification confidence (${overallConfidence}%).`;
   }
 
   return {

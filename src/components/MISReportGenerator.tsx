@@ -69,13 +69,151 @@ export const MISReportGenerator: React.FC<MISReportGeneratorProps> = ({
     };
   }, [applications, isBlank]);
 
-  const handleExport = (type: 'PDF' | 'EXCEL') => {
-    setIsExporting(type);
-    setTimeout(() => {
+  const [downloadFallbackUrl, setDownloadFallbackUrl] = useState<string | null>(null);
+
+  const handleExport = (type: 'PDF' | 'EXCEL' | 'CSV') => {
+    setIsExporting(type === 'PDF' ? 'PDF' : 'EXCEL');
+    
+    if (type === 'EXCEL' || type === 'CSV') {
+      try {
+        const headers = [
+          'Application Number',
+          'Candidate Name',
+          'Gender',
+          'ST Community',
+          'State',
+          'District',
+          'Scheme',
+          'Qualifying Degree',
+          'Aggregate Percentage',
+          'Annual Family Income (INR)',
+          'Bank Name',
+          'Aadhaar Seeded',
+          'Application Status',
+          'AI OCR Confidence (%)',
+          'Risk Score',
+          'Merit Score',
+          'Submission Date'
+        ];
+
+        const rows = applications.map((app) => [
+          app.applicationNumber || '',
+          app.applicant?.fullName || '',
+          app.applicant?.gender || '',
+          app.applicant?.stCommunity || '',
+          app.applicant?.state || '',
+          app.applicant?.district || '',
+          app.scheme || '',
+          app.academic?.qualifyingDegree || '',
+          `${app.academic?.qualifyingPercentage || ''}%`,
+          `₹${(app.applicant?.annualFamilyIncome || 0).toLocaleString('en-IN')}`,
+          app.bankDetails?.bankName || '',
+          app.bankDetails?.isAadhaarSeeded ? 'YES' : 'NO',
+          app.status || '',
+          `${app.aiAnalysis?.overallConfidence || 95}%`,
+          app.aiAnalysis?.riskScore || 'Low',
+          `${app.aiAnalysis?.meritScore || 85}`,
+          app.submittedAt || ''
+        ]);
+
+        let blob: Blob;
+        let filename: string;
+
+        if (type === 'EXCEL') {
+          // Build rich Microsoft Excel-compatible XML/HTML Spreadsheet
+          const tableRowsHtml = rows
+            .map((r, idx) => `
+              <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                ${r.map(cell => `<td style="border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11px;">${cell}</td>`).join('')}
+              </tr>
+            `).join('');
+
+          const excelHtml = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+              <head>
+                <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                <!--[if gte mso 9]>
+                <xml>
+                  <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                      <x:ExcelWorksheet>
+                        <x:Name>MoTA MIS Report</x:Name>
+                        <x:WorksheetOptions>
+                          <x:DisplayGridlines/>
+                        </x:WorksheetOptions>
+                      </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                  </x:ExcelWorkbook>
+                </xml>
+                <![endif]-->
+                <style>
+                  body { font-family: 'Segoe UI', Arial, sans-serif; }
+                  table { border-collapse: collapse; width: 100%; }
+                  th { background-color: #0f172a; color: #ffffff; font-weight: bold; border: 1px solid #0f172a; padding: 8px 10px; font-size: 12px; }
+                </style>
+              </head>
+              <body>
+                <h2>MINISTRY OF TRIBAL AFFAIRS (MoTA) - PARLIAMENTARY MIS REPORT</h2>
+                <p><strong>Report Period:</strong> ${reportPeriod} | <strong>Generated:</strong> ${new Date().toLocaleString('en-IN')}</p>
+                <p><strong>Total Dossiers:</strong> ${stats.total} | <strong>Verified:</strong> ${stats.verified} | <strong>DBT Active:</strong> ${stats.dbtActive} | <strong>Female Ratio:</strong> ${stats.femaleRatio}%</p>
+                <table>
+                  <thead>
+                    <tr>
+                      ${headers.map(h => `<th>${h}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${tableRowsHtml}
+                  </tbody>
+                </table>
+              </body>
+            </html>
+          `;
+
+          blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+          filename = `AROHA_MoTA_MIS_Report_${reportPeriod}_${new Date().toISOString().split('T')[0]}.xls`;
+        } else {
+          // Standard CSV
+          const csvLines = [
+            '\uFEFF# MINISTRY OF TRIBAL AFFAIRS (MoTA) - MIS EXPORT',
+            `# Period: ${reportPeriod} | Generated: ${new Date().toLocaleString('en-IN')}`,
+            headers.join(','),
+            ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+          ];
+          blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+          filename = `AROHA_MoTA_MIS_Report_${reportPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
+        }
+
+        const url = URL.createObjectURL(blob);
+        setDownloadFallbackUrl(url);
+
+        // Standard link click trigger
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.target = '_self';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 500);
+
+        setToastMessage(`Official MIS Report successfully generated as Excel document (${stats.total} records).`);
+      } catch (err: any) {
+        console.error('Excel export error:', err);
+        setToastMessage('Error generating Excel file. Please try again.');
+      }
       setIsExporting(null);
-      setToastMessage(`Official MIS Report successfully exported as ${type} document with ${stats.total} dossier records.`);
-      setTimeout(() => setToastMessage(null), 4000);
-    }, 800);
+      setTimeout(() => setToastMessage(null), 6000);
+    } else {
+      // PDF print view
+      setTimeout(() => {
+        setIsExporting(null);
+        window.print();
+      }, 400);
+    }
   };
 
   const handlePrint = () => {

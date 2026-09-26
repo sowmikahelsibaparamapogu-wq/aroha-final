@@ -3,13 +3,17 @@ import { LanguageCode, SUPPORTED_LANGUAGES, getTranslation } from '../utils/tran
 
 interface LanguageContextType {
   lang: LanguageCode;
+  language: LanguageCode;
   setLang: (lang: LanguageCode) => void;
+  setLanguage: (lang: LanguageCode) => void;
   t: (key: string, fallback?: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   lang: 'en',
+  language: 'en',
   setLang: () => {},
+  setLanguage: () => {},
   t: (key: string, fallback?: string) => fallback || key,
 });
 
@@ -32,7 +36,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, language: lang, setLang, setLanguage: setLang, t }}>
       {children}
     </LanguageContext.Provider>
   );

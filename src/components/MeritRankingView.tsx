@@ -63,6 +63,94 @@ export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
   const femaleCount = rankedApps.slice(0, slotLimit).filter((a) => a.applicant.gender === 'Female').length;
   const femalePercentage = rankedApps.length > 0 ? ((femaleCount / Math.min(rankedApps.length, slotLimit)) * 100).toFixed(1) : '0';
 
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+
+  const handleExportGazette = () => {
+    try {
+      const headers = [
+        'National Rank',
+        'Application Number',
+        'Candidate Full Name',
+        'Gender',
+        'ST Community',
+        'State',
+        'Scheme',
+        'Qualifying Degree',
+        'Aggregate (%)',
+        'Annual Family Income',
+        'Composite Merit Score',
+        'Selection Quota Status'
+      ];
+
+      const rows = rankedApps.map((app, idx) => {
+        const isSelectedQuota = idx < slotLimit;
+        return [
+          `#${idx + 1}`,
+          app.applicationNumber || '',
+          app.applicant?.fullName || '',
+          app.applicant?.gender || '',
+          app.applicant?.stCommunity || '',
+          app.applicant?.state || '',
+          app.scheme || selectedScheme,
+          app.academic?.qualifyingDegree || '',
+          `${app.academic?.qualifyingPercentage || ''}%`,
+          `₹${(app.applicant?.annualFamilyIncome || 0).toLocaleString('en-IN')}`,
+          app.aiAnalysis?.meritScore || 85,
+          isSelectedQuota ? 'SANCTIONED (Within Slot Quota)' : 'WAITLISTED (Merit Ranked)'
+        ];
+      });
+
+      const tableRowsHtml = rows
+        .map((r, idx) => `
+          <tr style="background-color: ${idx < slotLimit ? (idx % 2 === 0 ? '#f0fdf4' : '#ffffff') : '#f8fafc'};">
+            ${r.map(cell => `<td style="border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11px;">${cell}</td>`).join('')}
+          </tr>
+        `).join('');
+
+      const excelHtml = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+            <style>
+              body { font-family: 'Segoe UI', Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th { background-color: #1e3a8a; color: #ffffff; font-weight: bold; border: 1px solid #1e3a8a; padding: 8px 10px; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <h2>GOVERNMENT OF INDIA - MINISTRY OF TRIBAL AFFAIRS</h2>
+            <h3>Official Gazette Merit List: ${selectedScheme} Scheme (Sanctioned Slots: ${slotLimit})</h3>
+            <p><strong>Generated Date:</strong> ${new Date().toLocaleString('en-IN')} | <strong>Total Ranked Candidates:</strong> ${rankedApps.length}</p>
+            <table>
+              <thead>
+                <tr>
+                  ${headers.map(h => `<th>${h}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRowsHtml}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `MoTA_${selectedScheme}_Official_Merit_Gazette_${new Date().toISOString().split('T')[0]}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => document.body.removeChild(link), 500);
+
+      setExportNotice(`Official ${selectedScheme} Merit Gazette downloaded as Excel document (${rankedApps.length} candidates).`);
+      setTimeout(() => setExportNotice(null), 5000);
+    } catch (err) {
+      console.error('Failed to export merit gazette:', err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Intake / Pending Preset Notification Banner */}
@@ -134,14 +222,22 @@ export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
 
           <button
             type="button"
-            onClick={() => alert(`Exporting official MoTA ${selectedScheme} Merit Gazetted List as CSV.`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 transition cursor-pointer"
+            onClick={handleExportGazette}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+            title="Download official merit roster as Excel spreadsheet"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{t('exportGazette', 'Export Gazette')}</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
+            <span>{t('exportGazette', 'Export Gazette (Excel)')}</span>
           </button>
         </div>
       </div>
+
+      {exportNotice && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-2">
+          <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+          <span>{exportNotice}</span>
+        </div>
+      )}
 
       {/* Quota & Reservation Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

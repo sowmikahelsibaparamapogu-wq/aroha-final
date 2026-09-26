@@ -588,7 +588,12 @@ YOUR DUAL MANDATE:
           break;
         }
       } catch (err: any) {
-        console.warn(`Attempt with ${modelName} failed, trying next:`, err?.message || err);
+        const errMsg = err?.message || String(err || '');
+        const isPermissionDenied = errMsg.includes('PERMISSION_DENIED') || errMsg.includes('denied access') || errMsg.includes('403');
+        if (isPermissionDenied) {
+          // Project key does not have Gemini API permissions enabled; fail fast to local engine
+          break;
+        }
         continue;
       }
     }

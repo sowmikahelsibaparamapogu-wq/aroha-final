@@ -230,41 +230,99 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
     { id: 'Union Territory', label: 'UTs', count: 8 },
   ];
 
-  // Helper color function based on concentration level and active layer
-  const getNodeColor = (data?: StateAggregatedData, isSelected = false) => {
-    if (isSelected) return { bg: '#f59e0b', text: '#020617', stroke: '#fbbf24', border: '#fef08a' }; // Vibrant Golden Amber for selected
-    if (!data || data.applicants === 0) {
-      return { bg: '#0f172a', text: '#94a3b8', stroke: '#1e293b', border: '#334155' };
+  // Dynamic color coding strictly based on application count / concentration
+  const getNodeColor = (data: StateAggregatedData | undefined, isSelected: boolean) => {
+    const count = data?.applicants || 0;
+
+    // 0 applicants: Clean white background with crisp light border
+    if (count === 0) {
+      return {
+        bg: '#ffffff',
+        text: '#334155',
+        subtext: '#64748b',
+        stroke: '#cbd5e1',
+        bubbleBg: '#f1f5f9',
+        bubbleText: '#94a3b8',
+      };
     }
 
-    if (layer === 'pending') {
-      if (data.pending > 3) return { bg: '#b45309', text: '#ffffff', stroke: '#f59e0b', border: '#fde68a' };
-      return { bg: '#78350f', text: '#fef3c7', stroke: '#d97706', border: '#fde68a' };
+    // Layer-specific overrides if user is looking at pending, risk, or approved
+    if (layer === 'pending' && (data?.pending || 0) > 0) {
+      return {
+        bg: '#f59e0b',
+        text: '#ffffff',
+        subtext: '#fef3c7',
+        stroke: '#d97706',
+        bubbleBg: '#b45309',
+        bubbleText: '#ffffff',
+      };
     }
 
-    if (layer === 'risk') {
-      if (data.highRisk > 0) return { bg: '#be123c', text: '#ffffff', stroke: '#fb7185', border: '#fecdd3' };
-      return { bg: '#047857', text: '#ecfdf5', stroke: '#10b981', border: '#a7f3d0' };
+    if (layer === 'risk' && (data?.highRisk || 0) > 0) {
+      return {
+        bg: '#ef4444',
+        text: '#ffffff',
+        subtext: '#fee2e2',
+        stroke: '#dc2626',
+        bubbleBg: '#991b1b',
+        bubbleText: '#ffffff',
+      };
     }
 
-    if (layer === 'approved') {
-      if (data.approved > 3) return { bg: '#4338ca', text: '#ffffff', stroke: '#818cf8', border: '#c7d2fe' };
-      return { bg: '#312e81', text: '#e0e7ff', stroke: '#6366f1', border: '#c7d2fe' };
+    if (layer === 'approved' && (data?.approved || 0) > 0) {
+      return {
+        bg: '#10b981',
+        text: '#ffffff',
+        subtext: '#d1fae5',
+        stroke: '#059669',
+        bubbleBg: '#065f46',
+        bubbleText: '#ffffff',
+      };
     }
 
-    // Default: Applicant Concentration (Density)
-    switch (data.concentrationLevel) {
-      case 'very_high': // 8+ applicants
-        return { bg: '#047857', text: '#ffffff', stroke: '#34d399', border: '#6ee7b7' }; // Deep glowing emerald
-      case 'high': // 4-7 applicants
-        return { bg: '#0284c7', text: '#ffffff', stroke: '#38bdf8', border: '#bae6fd' }; // Radiant electric cyan
-      case 'moderate': // 2-3 applicants
-        return { bg: '#7c3aed', text: '#ffffff', stroke: '#a78bfa', border: '#ddd6fe' }; // Vivid purple jewel
-      case 'emerging': // 1 applicant
-        return { bg: '#0d9488', text: '#ffffff', stroke: '#2dd4bf', border: '#99f6e4' }; // Teal turquoise
-      default:
-        return { bg: '#0f172a', text: '#94a3b8', stroke: '#1e293b', border: '#334155' };
+    // Default: Vibrant color coding based strictly on application count
+    if (count === 1) {
+      return {
+        bg: '#e0f2fe', // Soft Sky Blue
+        text: '#0369a1',
+        subtext: '#0284c7',
+        stroke: '#38bdf8',
+        bubbleBg: '#0284c7',
+        bubbleText: '#ffffff',
+      };
     }
+
+    if (count <= 3) {
+      return {
+        bg: '#38bdf8', // Electric Sky Blue
+        text: '#ffffff',
+        subtext: '#f0f9ff',
+        stroke: '#0284c7',
+        bubbleBg: '#0369a1',
+        bubbleText: '#ffffff',
+      };
+    }
+
+    if (count <= 7) {
+      return {
+        bg: '#6366f1', // Rich Indigo
+        text: '#ffffff',
+        subtext: '#e0e7ff',
+        stroke: '#4338ca',
+        bubbleBg: '#3730a3',
+        bubbleText: '#ffffff',
+      };
+    }
+
+    // 8+ applicants
+    return {
+      bg: '#7c3aed', // Royal Violet / Purple
+      text: '#ffffff',
+      subtext: '#f5f3ff',
+      stroke: '#5b21b6',
+      bubbleBg: '#4c1d95',
+      bubbleText: '#ffffff',
+    };
   };
 
   return (
@@ -470,35 +528,35 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
         {/* Left: Visual Map or Cards or Table (lg:col-span-7) */}
         <div className="lg:col-span-7 space-y-4">
           {displayMode === 'map' ? (
-            /* VISUAL COLORFUL GEOSPATIAL MAP */
-            <div className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-emerald-900/60 shadow-2xl relative overflow-hidden">
-              {/* Radial gradient background */}
-              <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
+            /* VISUAL COLORFUL GEOSPATIAL MAP (Clean White Canvas) */
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-md relative overflow-hidden">
+              {/* Subtle light dot grid background */}
+              <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
 
               {/* Map Title & Concentration Legend */}
               <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div className="font-black text-amber-300 flex items-center gap-2 text-xs">
-                  <Flame className="w-4 h-4 text-amber-400" />
-                  <span>Applicant Concentration Density Heatmap (All India)</span>
+                <div className="font-black text-slate-900 flex items-center gap-2 text-xs">
+                  <Flame className="w-4 h-4 text-indigo-600" />
+                  <span>Applicant Concentration Density Map (All India)</span>
                 </div>
                 
-                {/* Concentration Scale Legend */}
-                <div className="flex items-center gap-2 text-[10px] bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800 text-white">
-                  <span className="text-slate-400 font-bold">Density Scale:</span>
-                  <span className="flex items-center gap-1 font-bold text-emerald-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> High (8+)
+                {/* Concentration Scale Legend on White */}
+                <div className="flex items-center gap-2 text-[10px] bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 shadow-2xs">
+                  <span className="text-slate-500 font-bold">Density Scale:</span>
+                  <span className="flex items-center gap-1 font-bold text-purple-700">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block" /> High (8+)
                   </span>
-                  <span className="flex items-center gap-1 font-bold text-sky-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Mid (4-7)
+                  <span className="flex items-center gap-1 font-bold text-indigo-700">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block" /> Mid (4-7)
                   </span>
-                  <span className="flex items-center gap-1 font-bold text-purple-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Mod (2-3)
+                  <span className="flex items-center gap-1 font-bold text-sky-700">
+                    <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Mod (2-3)
                   </span>
-                  <span className="flex items-center gap-1 font-bold text-teal-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" /> 1
+                  <span className="flex items-center gap-1 font-bold text-cyan-800">
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-200 border border-cyan-400 inline-block" /> 1
                   </span>
                   <span className="flex items-center gap-1 text-slate-500">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-800 inline-block" /> 0
+                    <span className="w-2.5 h-2.5 rounded-full bg-white border border-slate-300 inline-block" /> 0
                   </span>
                 </div>
               </div>
@@ -508,39 +566,20 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                 <svg
                   viewBox="0 0 750 600"
                   className="w-full h-auto min-w-[580px] max-h-[520px] select-none"
-                  style={{ filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.5))' }}
+                  style={{ filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.06))' }}
                 >
-                  <defs>
-                    <linearGradient id="gradEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#047857" />
-                    </linearGradient>
-                    <linearGradient id="gradSky" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#38bdf8" />
-                      <stop offset="100%" stopColor="#0369a1" />
-                    </linearGradient>
-                    <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#a855f7" />
-                      <stop offset="100%" stopColor="#6b21a8" />
-                    </linearGradient>
-                    <linearGradient id="gradAmber" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="100%" stopColor="#d97706" />
-                    </linearGradient>
-                  </defs>
-
                   {/* Draw Regional Linkage Contour Guides */}
                   <path
                     d="M 230 60 L 250 160 L 280 240 L 300 380 L 270 520"
                     fill="none"
-                    stroke="rgba(16, 185, 129, 0.15)"
+                    stroke="rgba(99, 102, 241, 0.2)"
                     strokeWidth="1.5"
                     strokeDasharray="4 4"
                   />
                   <path
                     d="M 160 260 L 300 240 L 450 260 L 600 220"
                     fill="none"
-                    stroke="rgba(16, 185, 129, 0.15)"
+                    stroke="rgba(99, 102, 241, 0.2)"
                     strokeWidth="1.5"
                     strokeDasharray="4 4"
                   />
@@ -565,12 +604,12 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                             x={node.x - 4}
                             y={node.y - 4}
                             width={node.w + 8}
-                            h={node.h + 8}
+                            height={node.h + 8}
                             rx={14}
                             fill="none"
-                            stroke="#34d399"
+                            stroke="#6366f1"
                             strokeWidth="1.5"
-                            className="animate-ping opacity-30"
+                            className="animate-ping opacity-25"
                           />
                         )}
 
@@ -597,9 +636,10 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                           height={node.h}
                           rx={12}
                           fill={colors.bg}
-                          stroke={colors.stroke}
-                          strokeWidth={isSelected ? 2 : 1.2}
-                          className="transition-all duration-200 group-hover:brightness-125"
+                          stroke={isSelected ? '#f59e0b' : colors.stroke}
+                          strokeWidth={isSelected ? 2.5 : 1.2}
+                          className="transition-all duration-200 group-hover:brightness-95"
+                          style={{ filter: count > 0 ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.08))' : 'none' }}
                         />
 
                         {/* State Code */}
@@ -620,9 +660,9 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                           x={node.x + 10}
                           y={node.y + 32}
                           fontSize="8.5"
-                          fontWeight="600"
+                          fontWeight="700"
                           fontFamily="Inter, sans-serif"
-                          fill={isSelected ? '#020617' : '#94a3b8'}
+                          fill={isSelected ? '#0f172a' : colors.subtext}
                           className="pointer-events-none"
                         >
                           {node.name.length > 13 ? `${node.name.slice(0, 11)}..` : node.name}
@@ -633,7 +673,9 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                           cx={node.x + node.w - 14}
                           cy={node.y + 14}
                           r={count > 0 ? (count >= 10 ? 11 : 9.5) : 7}
-                          fill={count > 0 ? (isSelected ? '#020617' : colors.stroke) : '#1e293b'}
+                          fill={colors.bubbleBg}
+                          stroke={count === 0 ? '#cbd5e1' : 'none'}
+                          strokeWidth={count === 0 ? 1 : 0}
                           className="transition-all"
                         />
                         <text
@@ -643,7 +685,7 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                           fontSize="8.5"
                           fontWeight="900"
                           fontFamily="Inter, sans-serif"
-                          fill={count > 0 ? (isSelected ? '#f59e0b' : '#ffffff') : '#64748b'}
+                          fill={colors.bubbleText}
                           className="pointer-events-none"
                         >
                           {count}
@@ -655,25 +697,25 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
               </div>
 
               {/* Map Footer Info */}
-              <div className="relative z-10 flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-900">
+              <div className="relative z-10 flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100">
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Interactive Map: Click any state block to immediately inspect candidate dossiers.</span>
                 </span>
-                <span className="text-emerald-400 font-bold font-mono">
+                <span className="text-indigo-700 font-bold font-mono">
                   {grandTotals.statesWithApplicants} Active State Clusters
                 </span>
               </div>
             </div>
           ) : displayMode === 'cards' ? (
-            /* Cards View */
-            <div className="bg-slate-950 rounded-3xl p-5 sm:p-6 border border-emerald-950/40 shadow-inner relative overflow-hidden">
-              <div className="relative z-10 flex items-center justify-between mb-3 text-xs text-white">
-                <div className="font-black text-amber-300 flex items-center gap-2">
-                  <Compass className="w-4 h-4" />
+            /* Cards View on Clean White */
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="relative z-10 flex items-center justify-between mb-3 text-xs text-slate-800">
+                <div className="font-black text-indigo-900 flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-indigo-600" />
                   <span>Showing {filteredStates.length} of 36 States & Union Territories</span>
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-slate-500">
                   Click any state card to inspect candidate dossiers
                 </div>
               </div>
@@ -688,18 +730,12 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                       key={state.code}
                       type="button"
                       onClick={() => setSelectedStateName(state.name)}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[92px] ${
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-2xs relative overflow-hidden flex flex-col justify-between min-h-[92px] ${
                         isSelected
-                          ? 'bg-amber-400 text-slate-950 border-amber-300 font-bold scale-[1.02] ring-2 ring-amber-400/50 shadow-lg'
+                          ? 'bg-amber-100 text-slate-950 border-amber-400 font-bold ring-2 ring-amber-400/50 shadow-md'
                           : hasData
-                          ? layer === 'density'
-                            ? 'bg-emerald-900/80 hover:bg-emerald-800 text-white border-emerald-700/60'
-                            : layer === 'pending'
-                            ? 'bg-amber-900/80 hover:bg-amber-800 text-white border-amber-700/60'
-                            : layer === 'approved'
-                            ? 'bg-indigo-900/80 hover:bg-indigo-800 text-white border-indigo-700/60'
-                            : 'bg-rose-950/80 hover:bg-rose-900 text-white border-rose-700/60'
-                          : 'bg-slate-900/70 hover:bg-slate-800/80 text-slate-300 border-slate-800'
+                          ? 'bg-indigo-50/70 hover:bg-indigo-100/70 text-slate-900 border-indigo-200'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1.5">
@@ -707,36 +743,24 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                           <div className="text-xs font-black truncate max-w-[120px]">
                             {state.name}
                           </div>
-                          <div className={`text-[10px] ${isSelected ? 'text-slate-800' : 'text-slate-400'} truncate`}>
+                          <div className="text-[10px] text-slate-500 truncate">
                             {state.zone}
                           </div>
                         </div>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-black ${
-                          isSelected ? 'bg-slate-950 text-white' : 'bg-black/40 text-emerald-300'
+                          isSelected ? 'bg-amber-400 text-slate-900' : hasData ? 'bg-indigo-200 text-indigo-900' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {state.code}
                         </span>
                       </div>
 
-                      <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px]">
-                        <span className="font-bold">
-                          {hasData ? (
-                            <span className={isSelected ? 'text-slate-950 font-black' : 'text-emerald-300'}>
-                              {state.applicants} Applied
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 font-normal">0 Ingested</span>
-                          )}
+                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100 text-[11px]">
+                        <span className="font-bold text-slate-600">
+                          {state.applicants} {state.applicants === 1 ? 'Applicant' : 'Applicants'}
                         </span>
-                        {hasData && (
-                          <span className={isSelected ? 'text-slate-900 font-black' : 'text-amber-300 text-[10px]'}>
-                            {layer === 'pending'
-                              ? `${state.pending} Pending`
-                              : layer === 'approved'
-                              ? `${state.approved} Approved`
-                              : layer === 'risk'
-                              ? `${state.highRisk} Risk`
-                              : `${state.approved} DBT`}
+                        {state.applicants > 0 && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-600 text-white">
+                            Active
                           </span>
                         )}
                       </div>

@@ -21,16 +21,13 @@ import {
   Bell, 
   GraduationCap, 
   ShieldCheck, 
-  Settings, 
-  Compass, 
   LogOut, 
   ChevronLeft, 
   ChevronRight,
   Wifi,
   WifiOff,
   Palette,
-  HelpCircle,
-  Layers
+  HelpCircle
 } from 'lucide-react';
 import { UserRole, AuthUser } from '../types/scholarship';
 import { Avatar } from './Avatar';
@@ -91,7 +88,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // Normalize role
   const resolvedRole: UserRole = currentRole === 'applicant' ? 'student' : currentRole;
 
-  // Role-specific primary operational tabs (Distinct names, strictly NO mention of "features")
+  // Role-specific primary operational tabs with clear titles and rich icons
   const getPrimaryTabsForRole = () => {
     switch (resolvedRole) {
       case 'student':
@@ -141,75 +138,25 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   const primaryTabs = getPrimaryTabsForRole();
 
-  // Role-specific divided operations (strictly NO cross-portal operations)
-  const getDividedOperationsForRole = () => {
-    switch (resolvedRole) {
-      case 'student':
-        return [
-          { id: 'apply', label: 'Apply Scholarship' },
-          { id: 'track', label: 'Track DBT Status' },
-          { id: 'profile_360', label: '360° Dossier' },
-          { id: 'cross_scheme', label: 'Scheme Eligibility' },
-          { id: 'guidelines', label: 'Statutory Guidelines' },
-          { id: 'tribal_heritage', label: 'Heritage Gallery' },
-        ];
-      case 'officer':
-        return [
-          { id: 'bulk_queue', label: 'Batch Desk' },
-          { id: 'scrutiny', label: 'AI Scrutiny Desk' },
-          { id: 'doc_compare', label: 'Document Studio' },
-          { id: 'sla_pipeline', label: 'SLA Escalations' },
-          { id: 'rejections', label: 'Deficiencies Desk' },
-          { id: 'field_verification', label: 'Field Inquest' },
-          { id: 'timeline', label: 'Audit Timeline' },
-        ];
-      case 'admin':
-        return [
-          { id: 'command_center', label: 'Command Center' },
-          { id: 'rule_builder', label: 'Rules Architect' },
-          { id: 'policy_simulator', label: 'Policy Simulator' },
-          { id: 'merit', label: 'Merit Leaderboard' },
-          { id: 'gis_map', label: 'Geographic Map' },
-          { id: 'fraud_risk', label: 'Fraud Sentinel' },
-          { id: 'budget_forecast', label: 'Budget Radar' },
-          { id: 'mis_report', label: 'Automated MIS' },
-        ];
-      case 'supervisor':
-        return [
-          { id: 'executive_insights', label: 'Executive Insights' },
-          { id: 'decision_support', label: 'Decision Matrix' },
-          { id: 'command_center', label: 'Executive Overview' },
-          { id: 'officer_workload', label: 'Workload Capacity' },
-          { id: 'predictive_analytics', label: 'Demand Forecasts' },
-          { id: 'profile_360', label: 'Priority Dossier' },
-          { id: 'mis_report', label: 'Performance MIS' },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const dividedOperations = getDividedOperationsForRole();
-
   return (
     <aside
-      className={`bg-[#065f46] text-white flex flex-col justify-between shrink-0 transition-all duration-300 border-r border-emerald-700/50 relative z-30 shadow-2xl ${
-        collapsed ? 'w-16 sm:w-20' : 'w-64 sm:w-72'
+      className={`bg-slate-900 text-slate-100 flex flex-col justify-between shrink-0 transition-all duration-300 border-r border-slate-800 relative z-30 shadow-2xl ${
+        collapsed ? 'w-20' : 'w-72 sm:w-80'
       }`}
     >
       {/* Top Header */}
-      <div className="p-4 border-b border-white/20 space-y-3">
+      <div className="p-4 sm:p-5 border-b border-slate-800 space-y-3.5 bg-slate-950/60">
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-800 text-white font-black text-lg flex items-center justify-center shadow-lg border border-white/40">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black text-xl flex items-center justify-center shadow-lg border border-indigo-400/40">
                 अ
               </div>
               <div>
-                <div className="text-sm font-black text-white tracking-wide">
+                <div className="text-base font-black text-white tracking-wide">
                   AROHA MoTA
                 </div>
-                <div className="text-[10px] text-white/90 font-bold uppercase tracking-wider">
+                <div className="text-xs text-indigo-300 font-bold uppercase tracking-wider">
                   National Portal
                 </div>
               </div>
@@ -219,44 +166,47 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-xl bg-white/15 hover:bg-white/30 text-white border border-white/30 transition cursor-pointer"
+            className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition cursor-pointer shadow-sm"
             title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
-            {collapsed ? <ChevronRight className="w-4 h-4 text-white" /> : <ChevronLeft className="w-4 h-4 text-white" />}
+            {collapsed ? <ChevronRight className="w-5 h-5 text-indigo-400" /> : <ChevronLeft className="w-5 h-5 text-slate-300" />}
           </button>
         </div>
 
-        {/* Current Active Portal Indicator (No 4 portal switcher tabs inside active portal) */}
+        {/* Current Active Portal Indicator */}
         {!collapsed && (
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/15 border border-white/25">
-            <span className="text-[11px] font-black uppercase text-white tracking-wider">
+          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-800/90 border border-slate-700 shadow-inner">
+            <span className="text-xs font-black uppercase text-indigo-300 tracking-wider">
               {resolvedRole} Workspace
             </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse" />
           </div>
         )}
       </div>
 
-      {/* User Profile Card (Just Name of Logged-In User, NO Description) */}
+      {/* User Profile Card */}
       {currentUser && !collapsed && (
-        <div className="px-4 py-3 bg-white/10 border-b border-white/20 flex items-center gap-3">
+        <div className="px-5 py-3.5 bg-slate-800/40 border-b border-slate-800 flex items-center gap-3">
           <Avatar
             type={currentUser.avatarType}
             name={currentUser.name}
             role={currentUser.role}
-            size="sm"
+            size="md"
           />
           <div className="overflow-hidden">
             <div className="text-sm font-black text-white truncate tracking-wide">
               {currentUser.name}
             </div>
+            <div className="text-xs text-slate-400 font-semibold capitalize">
+              Authorized {currentUser.role}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Navigation Tabs List (All on Side Panel, Only White Text) */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-1.5 text-xs font-medium">
-        <div className="px-2 py-1 text-[11px] font-black uppercase tracking-wider text-white">
+      {/* Navigation Tabs List: Big, Crisp Fonts with Modern High-Contrast Palette (No Green) */}
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-2 font-medium">
+        <div className="px-2.5 py-1 text-xs font-black uppercase tracking-wider text-slate-400">
           {!collapsed ? `${resolvedRole.toUpperCase()} DESK WORKSPACE` : '•••'}
         </div>
 
@@ -268,16 +218,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               key={tab.id}
               type="button"
               onClick={() => onSelectTab(tab.id as PortalTab)}
-              className={`w-full flex items-center justify-between p-2.5 rounded-xl transition cursor-pointer text-left text-xs ${
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition cursor-pointer text-left text-sm ${
                 isActive
-                  ? 'bg-emerald-700 text-white font-black border-2 border-white shadow-md'
-                  : 'text-white/90 hover:text-white hover:bg-white/15'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold border border-indigo-400/50 shadow-lg shadow-indigo-900/40'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-semibold'
               }`}
               title={tab.label}
             >
-              <div className="flex items-center gap-3 truncate">
-                <Icon className="w-4 h-4 shrink-0 text-white" />
-                {!collapsed && <span className="truncate font-bold">{tab.label}</span>}
+              <div className="flex items-center gap-3.5 truncate">
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-400'}`} />
+                {!collapsed && (
+                  <span className="truncate text-sm sm:text-[14.5px] font-bold tracking-tight">
+                    {tab.label}
+                  </span>
+                )}
               </div>
             </button>
           );
@@ -287,78 +241,53 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('notifications')}
-          className={`w-full flex items-center justify-between p-2.5 rounded-xl transition cursor-pointer text-left mt-2 text-xs ${
+          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition cursor-pointer text-left mt-3 text-sm ${
             activeTab === 'notifications'
-              ? 'bg-emerald-700 text-white font-black border-2 border-white'
-              : 'text-white/90 hover:text-white hover:bg-white/15'
+              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold border border-indigo-400/50 shadow-lg'
+              : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-semibold'
           }`}
           title="Live Notifications & Alerts Stream"
         >
-          <div className="flex items-center gap-3 truncate">
-            <Bell className="w-4 h-4 text-white shrink-0" />
-            {!collapsed && <span className="font-bold">Notifications & Alerts</span>}
+          <div className="flex items-center gap-3.5 truncate">
+            <Bell className={`w-5 h-5 shrink-0 ${activeTab === 'notifications' ? 'text-white' : 'text-indigo-400'}`} />
+            {!collapsed && (
+              <span className="text-sm sm:text-[14.5px] font-bold tracking-tight">
+                Notifications & Alerts
+              </span>
+            )}
           </div>
           {unreadCount > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-black border border-white">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-black border border-rose-400 shadow-sm">
               {unreadCount}
             </span>
           )}
         </button>
-
-        {/* Role-Specific Divided Operations on Side Panel (Strictly separated per portal, ZERO cross-portal pollution) */}
-        {!collapsed && (
-          <div className="pt-3 border-t border-white/20 mt-2">
-            <div className="px-2 py-1 text-[11px] font-black uppercase tracking-wider text-white flex items-center justify-between">
-              <span className="flex items-center gap-1.5 truncate">
-                <Layers className="w-3.5 h-3.5 text-white shrink-0" />
-                <span className="truncate">{resolvedRole.toUpperCase()} OPERATIONS</span>
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-bold shrink-0">
-                PORTAL DESK
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-1.5 text-xs pt-1.5">
-              {dividedOperations.map((desk) => (
-                <button
-                  key={desk.id}
-                  type="button"
-                  onClick={() => onSelectTab(desk.id as PortalTab)}
-                  className={`p-2 rounded-xl text-left truncate text-[11px] font-bold transition cursor-pointer border ${
-                    activeTab === desk.id
-                      ? 'bg-emerald-700 text-white border-2 border-white shadow-md'
-                      : 'bg-white/10 hover:bg-white/25 text-white/95 border-white/20'
-                  }`}
-                  title={desk.label}
-                >
-                  <span className="truncate block">{desk.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Bottom Utility Controls */}
-      <div className="p-3 border-t border-white/20 space-y-2 bg-[#065f46]">
+      {/* Bottom Utility Controls (Clean and Minimalist, No Portal Desk Operations) */}
+      <div className="p-3.5 border-t border-slate-800 space-y-2 bg-slate-950/70">
         {/* Offline Mode Switch */}
         <button
           type="button"
           onClick={onToggleOffline}
-          className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+          className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold border transition cursor-pointer ${
             !isOnline
-              ? 'bg-amber-600/80 text-white border-white'
-              : 'bg-white/15 text-white border-white/30 hover:bg-white/25'
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+              : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
           }`}
           title="Toggle Offline-First Mode"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {!isOnline ? (
-              <WifiOff className="w-4 h-4 text-white animate-pulse" />
+              <WifiOff className="w-4 h-4 text-amber-400 animate-pulse" />
             ) : (
-              <Wifi className="w-4 h-4 text-white" />
+              <Wifi className="w-4 h-4 text-emerald-400" />
             )}
-            {!collapsed && <span className="text-white">{!isOnline ? 'Tribal Offline Active' : 'Online Sync Active'}</span>}
+            {!collapsed && (
+              <span className="font-bold">
+                {!isOnline ? 'Tribal Offline Active' : 'Online Sync Active'}
+              </span>
+            )}
           </div>
         </button>
 
@@ -366,11 +295,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-black text-white hover:bg-white/20 border border-white/30 transition cursor-pointer"
-          title="Sign out and return to Forest Portal Login"
+          className="w-full flex items-center gap-2.5 p-3 rounded-xl text-xs font-black text-slate-300 hover:text-white hover:bg-rose-950/40 border border-slate-700 hover:border-rose-600/50 transition cursor-pointer"
+          title="Sign out and return to Portal Login"
         >
-          <LogOut className="w-4 h-4 text-white" />
-          {!collapsed && <span className="text-white">Switch Portal / Sign Out</span>}
+          <LogOut className="w-4 h-4 text-rose-400" />
+          {!collapsed && <span>Switch Portal / Sign Out</span>}
         </button>
       </div>
     </aside>
