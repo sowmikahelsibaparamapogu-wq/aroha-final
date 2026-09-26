@@ -51,10 +51,10 @@ export const TribalCoverBanner: React.FC<TribalCoverBannerProps> = ({
                 <span>Indigenous Heritage & Higher Education Gateway</span>
               </span>
 
-              {currentUser?.community && (
+              {currentUser?.name && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-800/60 border border-emerald-600/40 text-emerald-200 text-[11px] font-semibold">
                   <Users className="w-3 h-3 text-emerald-300" />
-                  <span>{currentUser.community} Tribe ({currentUser.state || 'India'})</span>
+                  <span>{currentUser.name}</span>
                 </span>
               )}
 

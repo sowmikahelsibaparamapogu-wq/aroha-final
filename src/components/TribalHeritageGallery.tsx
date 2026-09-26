@@ -405,7 +405,7 @@ export const TribalHeritageGallery: React.FC<TribalHeritageGalleryProps> = ({ la
 
           <div className="flex items-center gap-2 bg-emerald-800/60 border border-emerald-700/60 px-3.5 py-2 rounded-xl text-xs text-emerald-100">
             <Palette className="w-4 h-4 text-amber-300 flex-shrink-0" />
-            <span className="font-semibold">{t('masterTraditionsFeatured', '6 Master Tribal Traditions Featured')}</span>
+            <span className="font-semibold">{t('masterTraditionsFeatured', '6 Master Tribal Traditions Showcased')}</span>
           </div>
         </div>
 

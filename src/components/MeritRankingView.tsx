@@ -18,11 +18,15 @@ import { INDIAN_ADMINISTRATIVE_DIVISIONS } from '../data/indianStates';
 interface MeritRankingViewProps {
   applications: Application[];
   onOpenApplication: (app: Application) => void;
+  isPresetUploaded?: boolean;
+  onOpenPresetModal?: () => void;
 }
 
 export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
   applications,
   onOpenApplication,
+  isPresetUploaded = true,
+  onOpenPresetModal,
 }) => {
   const { t } = useLanguage();
   const [selectedScheme, setSelectedScheme] = useState<SchemeType>('NFST');
@@ -61,6 +65,36 @@ export const MeritRankingView: React.FC<MeritRankingViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Intake / Pending Preset Notification Banner */}
+      {!isPresetUploaded && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs font-black uppercase tracking-wider">
+                GAZETTE RANKING PENDING
+              </span>
+              <span className="text-xs font-bold text-amber-800">
+                Awaiting Preset Upload & Statutory Evaluation
+              </span>
+            </div>
+            <p className="text-xs text-amber-900 max-w-xl">
+              National Merit Leaderboard results are not prebuilt before uploading a preset scenario. Upload a preset to ingest remaining candidates, calculate merit scores, and generate official gazette rankings.
+            </p>
+          </div>
+
+          {onOpenPresetModal && (
+            <button
+              type="button"
+              onClick={onOpenPresetModal}
+              className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition cursor-pointer shadow-md shrink-0 flex items-center gap-1.5"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>⚡ Upload Preset & Generate Roster</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Top Controls & Quota Stats */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

@@ -1,21 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  FileEdit, 
-  Search, 
-  BookOpen, 
-  ShieldCheck, 
-  BarChart3, 
-  Award, 
-  Sliders, 
-  HelpCircle,
-  Database,
-  Sparkles,
-  RotateCcw,
-  GraduationCap,
-  XCircle,
-  Building2
-} from 'lucide-react';
-import { 
   Application, 
   UserRole, 
   SchemeType, 
@@ -28,12 +12,17 @@ import { StorageEngine } from './services/storage';
 import { DEFAULT_SCHEME_RULES, evaluateApplication } from './services/ruleEngine';
 import { SEEDED_APPLICATIONS, INITIAL_SYSTEM_STATS } from './services/mockData';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
-import { AuthService, DEMO_APPLICANTS, DEMO_ADMINS } from './services/authService';
+import { 
+  AuthService, 
+  DEMO_STUDENTS, 
+  DEMO_OFFICERS, 
+  DEMO_ADMINS, 
+  DEMO_SUPERVISORS 
+} from './services/authService';
 
-// Components
-import { Header } from './components/Header';
+// Base Components
 import { AuthView } from './components/AuthView';
-import { TribalCoverBanner } from './components/TribalCoverBanner';
+import { SidePanel, PortalTab } from './components/SidePanel';
 import { OfflineBanner } from './components/OfflineBanner';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { MultiStepForm } from './components/MultiStepForm';
@@ -41,9 +30,7 @@ import { StatusTracker } from './components/StatusTracker';
 import { SchemeGuidelines } from './components/SchemeGuidelines';
 import { ScrutinyQueue } from './components/ScrutinyQueue';
 import { ScrutinyModal } from './components/ScrutinyModal';
-import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { MeritRankingView } from './components/MeritRankingView';
-import { RuleEngineConfigView } from './components/RuleEngineConfigView';
 import { DemoScenariosModal } from './components/DemoScenariosModal';
 import { RejectionDesk } from './components/RejectionDesk';
 import { FieldVerificationDesk } from './components/FieldVerificationDesk';
@@ -51,20 +38,40 @@ import { TribalHeritageGallery } from './components/TribalHeritageGallery';
 import { ArohaMitraBot } from './components/ArohaMitraBot';
 import { useLanguage } from './context/LanguageContext';
 
+// Top 20 Add-On Visual Intelligence Features
+import { CommandCenter } from './components/CommandCenter'; // Feature 1
+import { GISScholarshipMap } from './components/GISScholarshipMap'; // Feature 2
+import { PolicySimulator } from './components/PolicySimulator'; // Feature 3
+import { BudgetForecasting } from './components/BudgetForecasting'; // Feature 4
+import { ExecutiveInsights } from './components/ExecutiveInsights'; // Feature 5
+import { DecisionSupportCenter } from './components/DecisionSupportCenter'; // Feature 6
+import { FraudRiskDashboard } from './components/FraudRiskDashboard'; // Feature 7
+import { Applicant360Profile } from './components/Applicant360Profile'; // Feature 8
+import { SLAEscalationPipeline } from './components/SLAEscalationPipeline'; // Feature 9
+import { OfficerWorkloadDashboard } from './components/OfficerWorkloadDashboard'; // Feature 10
+import { NoCodeRuleBuilder } from './components/NoCodeRuleBuilder'; // Feature 12
+import { CrossSchemeRecommender } from './components/CrossSchemeRecommender'; // Feature 13
+import { PredictiveAnalytics } from './components/PredictiveAnalytics'; // Feature 14
+import { VersionTimeline } from './components/VersionTimeline'; // Feature 15
+import { DocumentComparisonViewer } from './components/DocumentComparisonViewer'; // Feature 16
+import { MISReportGenerator } from './components/MISReportGenerator'; // Feature 17
+import { BulkVerificationQueue } from './components/BulkVerificationQueue'; // Feature 18
+import { NotificationCenter } from './components/NotificationCenter'; // Feature 19
+import { LiveParameterModal } from './components/LiveParameterModal';
+import { PresetUploadModal } from './components/PresetUploadModal';
+import { 
+  BASELINE_APPLICATIONS, 
+  PENDING_INGESTION_APPLICATIONS, 
+  evaluateAllWithPreset, 
+  PresetScenario 
+} from './services/presetService';
+
 export default function App() {
   const { isOnline, realOnline, isSimulatedOffline, toggleSimulatedOffline } = useNetworkStatus();
-
-  // Language & Localization State
   const { lang, setLang, t } = useLanguage();
 
-  // Primary State
-  const [role, setRole] = useState<UserRole>('applicant');
-  const [applicantTab, setApplicantTab] = useState<'apply' | 'track' | 'guidelines'>('apply');
-  const [adminTab, setAdminTab] = useState<'scrutiny' | 'rejections' | 'field_verification' | 'merit' | 'analytics' | 'rules'>('scrutiny');
-
-  // Authentication & Tribal Atmosphere State
+  // Authentication State
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => AuthService.getCurrentUser());
-  const [authViewTab, setAuthViewTab] = useState<UserRole>('applicant');
   const [showAuthScreen, setShowAuthScreen] = useState<boolean>(() => {
     try {
       return !localStorage.getItem('aroha_current_auth_user');
@@ -72,16 +79,60 @@ export default function App() {
       return true;
     }
   });
-  const [tribalAmbience, setTribalAmbience] = useState<boolean>(true);
 
-  // Data State
-  const [applications, setApplications] = useState<Application[]>(SEEDED_APPLICATIONS);
+  // Current Role: Student, Officer, Admin, Supervisor
+  const [role, setRole] = useState<UserRole>(() => {
+    const user = AuthService.getCurrentUser();
+    if (user?.role === 'applicant') return 'student';
+    return user?.role || 'student';
+  });
+
+  // Active Tab across side panel
+  const [activeTab, setActiveTab] = useState<PortalTab>(() => {
+    const user = AuthService.getCurrentUser();
+    const r = user?.role || 'student';
+    if (r === 'officer') return 'bulk_queue';
+    if (r === 'admin') return 'command_center';
+    if (r === 'supervisor') return 'executive_insights';
+    return 'apply';
+  });
+
+  // Preset Upload and Results State: Before preset upload, results are NOT prebuilt!
+  const [isPresetUploaded, setIsPresetUploaded] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('aroha_preset_uploaded') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [activePresetName, setActivePresetName] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('aroha_active_preset_name');
+    } catch {
+      return null;
+    }
+  });
+
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+
+  // Applications Data State: Starts with baseline intake queue if preset not yet uploaded
+  const [applications, setApplications] = useState<Application[]>(() => {
+    try {
+      const isUp = localStorage.getItem('aroha_preset_uploaded') === 'true';
+      return isUp ? SEEDED_APPLICATIONS : BASELINE_APPLICATIONS;
+    } catch {
+      return BASELINE_APPLICATIONS;
+    }
+  });
+
   const [rules, setRules] = useState<Record<SchemeType, SchemeRuleConfig>>(DEFAULT_SCHEME_RULES);
-  const [selectedAppId, setSelectedAppId] = useState<string>('app_101');
+  const [selectedAppId, setSelectedAppId] = useState<string>('app_nfst_001');
   const [scrutinyModalApp, setScrutinyModalApp] = useState<Application | null>(null);
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [isParamModalOpen, setIsParamModalOpen] = useState(false);
 
-  // Offline & Sync Engine State
+  // Offline Sync State
   const [queuedDocsCount, setQueuedDocsCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -107,12 +158,19 @@ export default function App() {
   // Initialize DB on mount
   useEffect(() => {
     const initData = async () => {
-      const storedApps = await StorageEngine.getApplications();
-      if (storedApps && storedApps.length > 0) {
-        setApplications(storedApps);
+      const isUploaded = localStorage.getItem('aroha_preset_uploaded') === 'true';
+      if (isUploaded) {
+        const storedApps = await StorageEngine.getApplications();
+        if (storedApps && storedApps.length > 0) {
+          setApplications(storedApps);
+        } else {
+          setApplications(SEEDED_APPLICATIONS);
+          await StorageEngine.saveApplications(SEEDED_APPLICATIONS);
+        }
       } else {
-        setApplications(SEEDED_APPLICATIONS);
-        await StorageEngine.saveApplications(SEEDED_APPLICATIONS);
+        // Before Preset Upload: start with baseline intake un-evaluated applications
+        setApplications(BASELINE_APPLICATIONS);
+        await StorageEngine.saveApplications(BASELINE_APPLICATIONS);
       }
 
       const queued = await StorageEngine.getQueuedDocuments();
@@ -122,7 +180,7 @@ export default function App() {
     initData();
   }, []);
 
-  // Background sync handler when reconnecting or manually triggered
+  // Background sync handler
   const triggerSync = useCallback(async (options?: { showToast?: boolean }) => {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
@@ -135,7 +193,6 @@ export default function App() {
 
     setTimeout(async () => {
       setSyncProgress(60);
-      // Process queued documents
       if (queuedCount > 0) {
         await StorageEngine.clearQueuedDocuments();
         setQueuedDocsCount(0);
@@ -147,7 +204,6 @@ export default function App() {
         isSyncingRef.current = false;
         setLastSyncedText(`Last synced: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
         
-        // Only show toast if explicitly requested (e.g. manual click or when coming back online)
         const shouldShow = options?.showToast ?? true;
         if (shouldShow) {
           addToast(
@@ -158,35 +214,23 @@ export default function App() {
               : 'All offline applications, document queues, and scrutiny logs are up to date.'
           );
         }
-      }, 500);
-    }, 800);
+      }, 400);
+    }, 600);
   }, [addToast]);
-
-  // When network transitions from offline to online, auto-sync once
-  useEffect(() => {
-    if (!isOnline) {
-      wasOfflineRef.current = true;
-    } else if (wasOfflineRef.current) {
-      wasOfflineRef.current = false;
-      triggerSync({ showToast: true });
-    }
-  }, [isOnline, triggerSync]);
 
   // Handle new submission
   const handleApplicationSubmitted = (newApp: Application) => {
     setApplications((prev) => [newApp, ...prev.filter((a) => a.id !== newApp.id)]);
     setSelectedAppId(newApp.id);
-    setApplicantTab('track');
+    setActiveTab('track');
   };
 
   // Resolve Deficiency
   const handleResolveDeficiency = async (appId: string, defId: string, replacementDoc: DocumentUpload) => {
     const updated = applications.map((app) => {
       if (app.id !== appId) return app;
-
       const updatedDocs = [...(app.documents || []), replacementDoc];
       const updatedDefs = app.deficiencies?.filter((d) => d.id !== defId) || [];
-
       return {
         ...app,
         documents: updatedDocs,
@@ -195,12 +239,11 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
     });
-
     setApplications(updated);
     await StorageEngine.saveApplications(updated);
   };
 
-  // Scrutiny modal actions
+  // Scrutiny Modal Actions
   const handleApproveFromScrutiny = async (appId: string, remarks: string) => {
     const updated = applications.map((app) => {
       if (app.id !== appId) return app;
@@ -208,7 +251,7 @@ export default function App() {
         ...app,
         status: 'approved' as const,
         scrutiny: {
-          verifiedBy: 'MoTA Scrutiny Officer (Desk-IV)',
+          verifiedBy: currentUser?.name || 'MoTA Scrutiny Officer (Desk-IV)',
           reviewedAt: new Date().toISOString(),
           decision: 'approved' as const,
           remarks,
@@ -216,10 +259,9 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
     });
-
     setApplications(updated);
     await StorageEngine.saveApplications(updated);
-    addToast('success', 'Application Approved', `Application #${applications.find((a) => a.id === appId)?.applicationNumber} approved for Merit Roster.`);
+    addToast('success', 'Application Approved', 'Dossier cleared for National Merit Board.');
   };
 
   const handleIssueDeficiencyFromScrutiny = async (appId: string, notice: DeficiencyNotice) => {
@@ -229,19 +271,12 @@ export default function App() {
         ...app,
         status: 'flagged_deficiency' as const,
         deficiencies: [...(app.deficiencies || []), notice],
-        scrutiny: {
-          verifiedBy: 'MoTA Scrutiny Officer (Desk-IV)',
-          reviewedAt: new Date().toISOString(),
-          decision: 'deficiency_issued' as const,
-          remarks: notice.description,
-        },
         updatedAt: new Date().toISOString(),
       };
     });
-
     setApplications(updated);
     await StorageEngine.saveApplications(updated);
-    addToast('warning', 'Deficiency Notice Dispatched', `Deficiency alert forwarded to candidate dashboard and registered email.`);
+    addToast('warning', 'Deficiency Notice Issued', 'Candidate notified via SMS/email.');
   };
 
   const handleRejectFromScrutiny = async (appId: string, reason: string) => {
@@ -251,7 +286,7 @@ export default function App() {
         ...app,
         status: 'rejected' as const,
         scrutiny: {
-          verifiedBy: 'MoTA Scrutiny Officer (Desk-IV)',
+          verifiedBy: currentUser?.name || 'MoTA Scrutiny Officer',
           reviewedAt: new Date().toISOString(),
           decision: 'rejected' as const,
           remarks: reason,
@@ -259,10 +294,9 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
     });
-
     setApplications(updated);
     await StorageEngine.saveApplications(updated);
-    addToast('info', 'Application Rejected', `Application marked as rejected on statutory grounds.`);
+    addToast('info', 'Application Rejected', 'Statutory rejection recorded.');
   };
 
   const handleRejectWithStatutoryClause = async (appId: string, clauseCode: string, fullRemarks: string) => {
@@ -272,7 +306,7 @@ export default function App() {
         ...app,
         status: 'rejected' as const,
         scrutiny: {
-          verifiedBy: currentUser?.name || 'MoTA Scrutiny Officer (Desk-IV)',
+          verifiedBy: currentUser?.name || 'MoTA Scrutiny Officer',
           reviewedAt: new Date().toISOString(),
           decision: 'rejected' as const,
           remarks: fullRemarks,
@@ -280,206 +314,260 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
     });
-
     setApplications(updated);
     await StorageEngine.saveApplications(updated);
-    addToast('info', 'Statutory Rejection Registered', `Application rejected under Clause [${clauseCode}]. Formal Rejection Memo generated.`);
+    addToast('info', 'Statutory Rejection Registered', `Rejected under Clause [${clauseCode}].`);
   };
 
-  // Re-evaluate all applications with updated rules
-  const handleReevaluateAll = async () => {
+  // Bulk actions for Feature 18
+  const handleBatchApprove = async (ids: string[]) => {
     const updated = applications.map((app) => {
-      const evaluation = evaluateApplication(app, rules[app.scheme]);
+      if (ids.includes(app.id)) {
+        return {
+          ...app,
+          status: 'approved' as const,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return app;
+    });
+    setApplications(updated);
+    await StorageEngine.saveApplications(updated);
+    addToast('success', 'Batch Approved', `${ids.length} applications sanctioned successfully.`);
+  };
+
+  // Dynamic Policy & Parameter Update: when given update, recalculate all parameters and features dynamically
+  const handleUpdateParameters = async (params: {
+    incomeCeiling?: number;
+    marksThreshold?: number;
+    totalSlots?: number;
+    femaleQuota?: number;
+  }) => {
+    const updatedRules: Record<SchemeType, SchemeRuleConfig> = {
+      ...rules,
+      NFST: {
+        ...rules.NFST,
+        maxSlots: params.totalSlots ?? rules.NFST.maxSlots,
+        femaleReservationPercent: params.femaleQuota ?? rules.NFST.femaleReservationPercent,
+        eligibility: {
+          ...rules.NFST.eligibility,
+          minQualifyingPercentage: params.marksThreshold ?? rules.NFST.eligibility.minQualifyingPercentage,
+          maxIncomeLimit: params.incomeCeiling ?? rules.NFST.eligibility.maxIncomeLimit,
+        },
+      },
+      NOS: {
+        ...rules.NOS,
+        femaleReservationPercent: params.femaleQuota ?? rules.NOS.femaleReservationPercent,
+        eligibility: {
+          ...rules.NOS.eligibility,
+          minQualifyingPercentage: params.marksThreshold ?? rules.NOS.eligibility.minQualifyingPercentage,
+          maxIncomeLimit: params.incomeCeiling ?? rules.NOS.eligibility.maxIncomeLimit,
+        },
+      },
+    };
+
+    setRules(updatedRules);
+
+    // Re-evaluate all applications using the updated scheme rule parameters
+    const updatedApps = applications.map((app) => {
+      const schemeRule = updatedRules[app.scheme || 'NFST'];
+      const evalResult = evaluateApplication(app, schemeRule);
+
+      let newStatus = app.status;
+      if (evalResult.passed && (app.status === 'rejected' || app.status === 'flagged_deficiency')) {
+        newStatus = 'in_scrutiny';
+      } else if (!evalResult.passed && (app.status === 'in_scrutiny' || app.status === 'submitted')) {
+        newStatus = 'flagged_deficiency';
+      }
+
       return {
         ...app,
+        status: newStatus,
         aiAnalysis: {
-          overallConfidence: evaluation.overallConfidence,
-          eligibilityPassed: evaluation.passed,
-          requiresHumanReview: evaluation.requiresHumanReview,
-          flags: evaluation.flags,
-          riskScore: evaluation.riskScore,
-          meritScore: evaluation.meritScore,
-          verifiedFieldsCount: evaluation.verifiedFieldsCount,
-          totalFieldsCount: evaluation.totalFieldsCount,
-          summary: evaluation.summary,
+          ...app.aiAnalysis,
+          eligibilityPassed: evalResult.passed,
+          flags: evalResult.flags,
+          riskScore: evalResult.riskScore,
+          calculatedMeritScore: evalResult.meritScore,
+          overallConfidence: evalResult.overallConfidence,
         },
+        updatedAt: new Date().toISOString(),
       };
     });
 
-    setApplications(updated);
-    await StorageEngine.saveApplications(updated);
-    addToast('success', 'Re-Evaluation Completed', `Re-assessed ${updated.length} applications against modified policy weights.`);
+    setApplications(updatedApps);
+    await StorageEngine.saveApplications(updatedApps);
+    addToast(
+      'success',
+      'All Parameters & Features Recalculated',
+      'Updated national eligibility, merit quotas, and command dashboards based on input.'
+    );
   };
 
-  // Reset database back to default mock data
-  const handleResetData = async () => {
-    await StorageEngine.saveApplications(SEEDED_APPLICATIONS);
-    await StorageEngine.clearAllDrafts();
-    await StorageEngine.clearQueuedDocuments();
-    setApplications(SEEDED_APPLICATIONS);
-    setSelectedAppId('app_101');
-    addToast('info', 'Database Reset', 'Restored initial MoTA benchmark dataset.');
-  };
+  // Handle Preset Scenario Apply: Ingests additional applications & updates all tabs and portals
+  const handleApplyPresetScenario = async (preset: PresetScenario) => {
+    const currentIds = new Set(applications.map((a) => a.id));
+    const newAppsToIngest = preset.additionalApplications.filter((a) => !currentIds.has(a.id));
+    const mergedPool = [...applications, ...newAppsToIngest];
 
-  // Quick Demo Scenario Switcher
-  const handleSelectScenario = (scenarioId: string) => {
-    switch (scenarioId) {
-      case 'scenario_name_mismatch':
-        setRole('applicant');
-        setApplicantTab('apply');
-        addToast(
-          'warning',
-          'Loaded Document Name Mismatch Scenario',
-          'Form preset configured with candidate Jemimah Khasi and ST Certificate "Jemimah Lapang" discrepancy.'
-        );
-        break;
+    const { updatedRules, evaluatedApplications } = evaluateAllWithPreset(
+      mergedPool,
+      preset.parameters,
+      rules
+    );
 
-      case 'scenario_clean_nfst':
-        setRole('applicant');
-        setSelectedAppId('app_101');
-        setApplicantTab('track');
-        addToast('success', 'Loaded Scenario A', 'Viewing Sowmika Helsiba (Clean NFST candidate with verified credentials).');
-        break;
+    setRules(updatedRules);
+    setApplications(evaluatedApplications);
+    setIsPresetUploaded(true);
+    setActivePresetName(preset.name);
 
-      case 'scenario_deficiency_nos':
-        setRole('applicant');
-        setSelectedAppId('app_102');
-        setApplicantTab('track');
-        addToast('warning', 'Loaded Scenario B', 'Viewing Birsa Dev Munda with active Deficiency Notice for resolution.');
-        break;
-
-      case 'scenario_scrutiny_desk':
-        setRole('admin');
-        setAdminTab('scrutiny');
-        const targetApp = applications.find((a) => a.id === 'app_102') || applications[0];
-        setScrutinyModalApp(targetApp);
-        addToast('info', 'Loaded Scenario C', 'Opened MoTA Scrutiny Desk for side-by-side OCR entity verification.');
-        break;
-
-      case 'scenario_merit_ranking':
-        setRole('admin');
-        setAdminTab('merit');
-        addToast('info', 'Loaded Scenario D', 'National Merit Roster with dynamic ranking and 30% female quota.');
-        break;
-
-      case 'scenario_dbt_disbursed':
-        setRole('applicant');
-        setSelectedAppId('app_104');
-        setApplicantTab('track');
-        addToast('success', 'Loaded Scenario E', 'Viewing Jemimah Khasi with active PFMS DBT tranches & Sanction Order.');
-        break;
-
-      case 'scenario_offline_test':
-        setRole('applicant');
-        setApplicantTab('apply');
-        if (isOnline) {
-          toggleSimulatedOffline();
-        }
-        addToast('warning', 'Simulated Offline Mode Activated', 'PWA IndexedDB storage active. Forms can be filled and queued without network.');
-        break;
-
-      default:
-        break;
+    try {
+      localStorage.setItem('aroha_preset_uploaded', 'true');
+      localStorage.setItem('aroha_active_preset_name', preset.name);
+    } catch {
+      // ignore
     }
+
+    await StorageEngine.saveApplications(evaluatedApplications);
+
+    addToast(
+      'success',
+      `Preset Applied: ${preset.name}`,
+      `Ingested ${newAppsToIngest.length} candidate dossiers & updated results across all tabs and portals.`
+    );
   };
 
-  // Handle quick navigation from AROHA Mitra bot
-  const handleBotNavigate = (targetTab: 'apply' | 'track' | 'guidelines' | 'scrutiny' | 'merit') => {
-    if (targetTab === 'apply' || targetTab === 'track' || targetTab === 'guidelines') {
-      setRole('applicant');
-      setApplicantTab(targetTab);
-    } else if (targetTab === 'scrutiny' || targetTab === 'merit') {
-      setRole('admin');
-      setAdminTab(targetTab);
+  // Handle Custom JSON Preset Upload
+  const handleUploadCustomPresetJson = async (jsonData: any) => {
+    const params = {
+      incomeCeiling: jsonData.parameters?.incomeCeiling ?? 800000,
+      marksThreshold: jsonData.parameters?.marksThreshold ?? 55,
+      totalSlots: jsonData.parameters?.totalSlots ?? 750,
+      femaleQuota: jsonData.parameters?.femaleQuota ?? 30,
+    };
+
+    const presetName = jsonData.name || 'Custom Preset JSON';
+
+    const extraApps: Application[] = Array.isArray(jsonData.additionalApplications) && jsonData.additionalApplications.length > 0
+      ? jsonData.additionalApplications
+      : PENDING_INGESTION_APPLICATIONS;
+
+    const currentIds = new Set(applications.map((a) => a.id));
+    const newAppsToIngest = extraApps.filter((a) => !currentIds.has(a.id));
+    const mergedPool = [...applications, ...newAppsToIngest];
+
+    const { updatedRules, evaluatedApplications } = evaluateAllWithPreset(
+      mergedPool,
+      params,
+      rules
+    );
+
+    setRules(updatedRules);
+    setApplications(evaluatedApplications);
+    setIsPresetUploaded(true);
+    setActivePresetName(presetName);
+
+    try {
+      localStorage.setItem('aroha_preset_uploaded', 'true');
+      localStorage.setItem('aroha_active_preset_name', presetName);
+    } catch {
+      // ignore
     }
+
+    await StorageEngine.saveApplications(evaluatedApplications);
+
+    addToast(
+      'success',
+      `Custom Preset Uploaded: ${presetName}`,
+      `Ingested ${newAppsToIngest.length} candidate dossiers & updated results across all tabs and portals.`
+    );
+  };
+
+  // Reset to Intake State (Before Preset Upload)
+  const handleResetToPreUploadState = async () => {
+    setApplications(BASELINE_APPLICATIONS);
+    setRules(DEFAULT_SCHEME_RULES);
+    setIsPresetUploaded(false);
+    setActivePresetName(null);
+
+    try {
+      localStorage.removeItem('aroha_preset_uploaded');
+      localStorage.removeItem('aroha_active_preset_name');
+    } catch {
+      // ignore
+    }
+
+    await StorageEngine.saveApplications(BASELINE_APPLICATIONS);
+
+    addToast(
+      'info',
+      'Reset to Intake State (Before Preset)',
+      'Results cleared. Baseline intake restored; awaiting preset upload.'
+    );
   };
 
   // Authentication Handlers
   const handleLogin = (user: AuthUser) => {
+    const normalizedRole: UserRole = user.role === 'applicant' ? 'student' : user.role;
     setCurrentUser(user);
     AuthService.setCurrentUser(user);
-    setRole(user.role);
-    if (user.role === 'applicant') {
-      if (user.associatedAppId) {
-        setSelectedAppId(user.associatedAppId);
-        setApplicantTab('track');
-      } else {
-        setApplicantTab('apply');
-      }
-    } else {
-      setAdminTab('scrutiny');
-    }
-    setShowAuthScreen(false);
-    addToast(
-      'success',
-      `Authenticated: ${user.name}`,
-      `Signed in to ${user.role === 'admin' ? 'MoTA Official Scrutiny Portal' : 'ST Candidate Fellowship Desk'}.`
-    );
-  };
+    setRole(normalizedRole);
 
-  const handleExploreAsGuest = (selectedRole: UserRole) => {
-    const guestUser: AuthUser = selectedRole === 'admin' ? DEMO_ADMINS[0] : DEMO_APPLICANTS[0];
-    setCurrentUser(guestUser);
-    AuthService.setCurrentUser(guestUser);
-    setRole(selectedRole);
+    // Route to role-specific default tab
+    if (normalizedRole === 'student') {
+      setActiveTab('apply');
+      if (user.associatedAppId) setSelectedAppId(user.associatedAppId);
+    } else if (normalizedRole === 'officer') {
+      setActiveTab('bulk_queue');
+    } else if (normalizedRole === 'admin') {
+      setActiveTab('command_center');
+    } else if (normalizedRole === 'supervisor') {
+      setActiveTab('executive_insights');
+    }
+
     setShowAuthScreen(false);
-    addToast(
-      'info',
-      'Guest Explorer Mode',
-      `Active as ${selectedRole === 'admin' ? 'MoTA Scrutiny Officer' : 'ST Candidate Scholar'}.`
-    );
+    addToast('success', `Welcome, ${user.name}`, `Routed to ${normalizedRole.toUpperCase()} Portal.`);
   };
 
   const handleLogout = () => {
     AuthService.logout();
     setCurrentUser(null);
-    setAuthViewTab(role);
     setShowAuthScreen(true);
-    addToast('info', 'Signed Out', 'Returned to AROHA Portal Authentication Gateway.');
+    addToast('info', 'Logged Out', 'Returned to AROHA Portal Authentication.');
   };
 
-  const handleOpenAuth = (targetTab?: UserRole) => {
-    setAuthViewTab(targetTab || role);
-    setShowAuthScreen(true);
-  };
-
-  // Dedicated role and portal switcher ensuring complete portal separation
+  // Switch role dynamically from side panel
   const handleRoleChange = (newRole: UserRole) => {
-    if (newRole !== role) {
-      setRole(newRole);
-      if (newRole === 'admin') {
-        const defaultAdmin = DEMO_ADMINS[0];
-        setCurrentUser(defaultAdmin);
-        AuthService.setCurrentUser(defaultAdmin);
-        setAdminTab('scrutiny');
-        addToast(
-          'info',
-          'Switched to Scrutiny Portal',
-          `Welcome, ${defaultAdmin.name}. Viewing MoTA Statutory Scrutiny Desk.`
-        );
-      } else {
-        const defaultApplicant = DEMO_APPLICANTS[0];
-        setCurrentUser(defaultApplicant);
-        AuthService.setCurrentUser(defaultApplicant);
-        setSelectedAppId(defaultApplicant.associatedAppId || 'app_101');
-        setApplicantTab('track');
-        addToast(
-          'info',
-          'Switched to Application Portal',
-          `Welcome, ${defaultApplicant.name}. Viewing ST Candidate Fellowship Desk.`
-        );
-      }
+    const normalized: UserRole = newRole === 'applicant' ? 'student' : newRole;
+    setRole(normalized);
+    const presets = AuthService.getDemoUsersForRole(normalized);
+    if (presets.length > 0) {
+      setCurrentUser(presets[0]);
+      AuthService.setCurrentUser(presets[0]);
     }
+    // Route to default tab of chosen role
+    if (normalized === 'student') setActiveTab('apply');
+    else if (normalized === 'officer') setActiveTab('bulk_queue');
+    else if (normalized === 'admin') setActiveTab('command_center');
+    else if (normalized === 'supervisor') setActiveTab('executive_insights');
+
+    addToast('info', `Switched to ${normalized.toUpperCase()} Portal`, `Loaded active workspace for ${normalized}.`);
   };
 
-  // Starting Screen: Authentication Gateway with separate Admin & Applicant tabs
+  // Handle Bot quick navigation
+  const handleBotNavigate = (targetTab: string) => {
+    setActiveTab(targetTab as PortalTab);
+  };
+
+  const currentApplication = applications.find((a) => a.id === selectedAppId) || applications[0];
+
+  // If user is not logged in: Render minimal, realistic forest background login portal
   if (showAuthScreen) {
     return (
       <>
         <AuthView
           onLogin={handleLogin}
-          onExploreAsGuest={handleExploreAsGuest}
-          initialTab={authViewTab}
+          initialRole={role}
         />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </>
@@ -487,40 +575,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7F5] text-slate-900 flex flex-col font-sans antialiased relative selection:bg-amber-200 selection:text-amber-900">
-      {/* Real Tribal Photographic Cover Background Layer */}
-      {tribalAmbience && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1609137144822-45e3f436d6c7?auto=format&fit=crop&w=2400&q=80"
-            alt="Indian Tribal Heritage Texture"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover opacity-8 filter brightness-95 contrast-125 saturate-150"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/10 via-transparent to-amber-950/15" />
-        </div>
-      )}
-
-      {/* Primary Navigation & Emblem Bar */}
-      <Header
-        currentRole={role}
-        onRoleChange={handleRoleChange}
-        isOnline={isOnline}
-        isSimulatedOffline={isSimulatedOffline}
-        onToggleSimulatedOffline={toggleSimulatedOffline}
-        lastSyncedText={lastSyncedText}
-        isSyncing={isSyncing}
-        onManualSync={triggerSync}
-        onOpenDemoScenarios={() => setIsDemoModalOpen(true)}
-        lang={lang}
-        onLanguageChange={setLang}
-        currentUser={currentUser}
-        onOpenAuth={handleOpenAuth}
-        onLogout={handleLogout}
-        tribalAmbience={tribalAmbience}
-        onToggleAmbience={() => setTribalAmbience(!tribalAmbience)}
-      />
-
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased relative selection:bg-emerald-200 selection:text-emerald-900">
+      
       {/* Offline Status & Progress Banner */}
       <OfflineBanner
         isOnline={isOnline}
@@ -531,180 +587,254 @@ export default function App() {
         onToggleBackOnline={toggleSimulatedOffline}
       />
 
-      {/* Sub-navigation Tabs in Green Forest Theme - Dedicated to Active Portal */}
-      <div className="bg-white border-b border-emerald-900/15 shadow-2xs relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between overflow-x-auto py-2.5">
-            {role === 'applicant' ? (
-              <div className="flex items-center gap-2">
-                {/* Application Portal Scope Badge */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900/10 text-emerald-950 text-xs font-extrabold uppercase tracking-wide mr-1 shrink-0 border border-emerald-800/15">
-                  <GraduationCap className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Application Desk:</span>
-                </div>
+      {/* Main Workspace with ALL Tabs on Side Panel */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* SIDE PANEL: Hosts ALL tabs and desks (No middle horizontal tabs!) */}
+        <SidePanel
+          currentRole={role}
+          onRoleChange={handleRoleChange}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          isOnline={isOnline}
+          onToggleOffline={toggleSimulatedOffline}
+          unreadCount={2}
+        />
 
-                <button
-                  type="button"
-                  onClick={() => setApplicantTab('apply')}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    applicantTab === 'apply'
-                      ? 'bg-emerald-800 text-white shadow-xs'
-                      : 'text-emerald-950 hover:text-emerald-800 hover:bg-emerald-50'
-                  }`}
-                >
-                  <FileEdit className="w-4 h-4" />
-                  <span>{t('tabNewApp')}</span>
-                </button>
+        {/* Right Main Content Canvas - Bright, Crisp & Colorful */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/20 relative">
+          
+          {/* Top Quick Actions & Breadcrumb Bar */}
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-2.5 text-xs flex-wrap">
+              <span className="font-black text-indigo-500 uppercase tracking-wider font-mono">PORTAL:</span>
+              <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black uppercase text-xs border border-emerald-300 shadow-xs">
+                {role}
+              </span>
+              <span className="text-slate-300 font-bold">/</span>
+              <span className="font-black text-indigo-900 capitalize text-sm tracking-wide">
+                {activeTab.replace('_', ' ')}
+              </span>
 
-                <button
-                  type="button"
-                  onClick={() => setApplicantTab('track')}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    applicantTab === 'track'
-                      ? 'bg-emerald-800 text-white shadow-xs'
-                      : 'text-emerald-950 hover:text-emerald-800 hover:bg-emerald-50'
-                  }`}
-                >
-                  <Search className="w-4 h-4" />
-                  <span>{t('tabTrack')}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setApplicantTab('guidelines')}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    applicantTab === 'guidelines'
-                      ? 'bg-emerald-800 text-white shadow-xs'
-                      : 'text-emerald-950 hover:text-emerald-800 hover:bg-emerald-50'
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>{t('tabGuidelines')}</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-                {/* Scrutiny Portal Scope Badge */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-900/10 text-amber-950 text-xs font-extrabold uppercase tracking-wide mr-1 shrink-0 border border-amber-800/15">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Scrutiny Desk:</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('scrutiny')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'scrutiny'
-                      ? 'bg-amber-800 text-white shadow-xs'
-                      : 'text-amber-950 hover:text-amber-800 hover:bg-amber-50'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Scrutiny Queue</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('rejections')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'rejections'
-                      ? 'bg-rose-800 text-white shadow-xs'
-                      : 'text-rose-950 hover:text-rose-800 hover:bg-rose-50'
-                  }`}
-                >
-                  <XCircle className="w-4 h-4 text-rose-500" />
-                  <span>Statutory Rejections</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${adminTab === 'rejections' ? 'bg-rose-950 text-white' : 'bg-rose-100 text-rose-800'}`}>
-                    {applications.filter((a) => a.status === 'rejected').length}
+              {/* Logged in User: ONLY NAME, NO DESCRIPTION */}
+              {currentUser && (
+                <>
+                  <span className="text-slate-300 font-bold hidden sm:inline">•</span>
+                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 font-black text-xs border border-indigo-200 shadow-xs">
+                    👤 {currentUser.name}
                   </span>
-                </button>
+                </>
+              )}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('field_verification')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'field_verification'
-                      ? 'bg-amber-800 text-white shadow-xs'
-                      : 'text-amber-950 hover:text-amber-800 hover:bg-amber-50'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Field Verification Desk</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('merit')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'merit'
-                      ? 'bg-amber-800 text-white shadow-xs'
-                      : 'text-amber-950 hover:text-amber-800 hover:bg-amber-50'
-                  }`}
-                >
-                  <Award className="w-4 h-4" />
-                  <span>{t('tabMerit')}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('analytics')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'analytics'
-                      ? 'bg-amber-800 text-white shadow-xs'
-                      : 'text-amber-950 hover:text-amber-800 hover:bg-amber-50'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  <span>{t('tabAnalytics')}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setAdminTab('rules')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap ${
-                    adminTab === 'rules'
-                      ? 'bg-amber-800 text-white shadow-xs'
-                      : 'text-amber-950 hover:text-amber-800 hover:bg-amber-50'
-                  }`}
-                >
-                  <Sliders className="w-4 h-4" />
-                  <span>{t('tabRules')}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Micro Reset Data button */}
-            <div className="flex items-center gap-2 pl-4">
+            <div className="flex items-center gap-2.5 text-xs flex-wrap">
+              {/* Preset Upload & Controller Button */}
               <button
                 type="button"
-                onClick={handleResetData}
-                className="text-[11px] font-semibold text-emerald-800/70 hover:text-emerald-900 transition flex items-center gap-1 cursor-pointer"
-                title="Reset sample applications to initial seed state"
+                onClick={() => setIsPresetModalOpen(true)}
+                className={`px-4 py-2 rounded-2xl font-black transition cursor-pointer shadow-md flex items-center gap-1.5 ${
+                  isPresetUploaded
+                    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-emerald-700/20'
+                    : 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white shadow-amber-600/20 animate-pulse'
+                }`}
+                title="Upload preset scenario or custom JSON to ingest applications and calculate results"
               >
-                <RotateCcw className="w-3 h-3 text-emerald-700" />
-                <span className="hidden sm:inline">{t('resetSeed')}</span>
+                <span>{isPresetUploaded ? `✓ Preset: ${activePresetName || 'Active'}` : '📁 Upload Preset'}</span>
+              </button>
+
+              {/* Dynamic Live Parameter Controller */}
+              <button
+                type="button"
+                onClick={() => setIsParamModalOpen(true)}
+                className="px-4 py-2 rounded-2xl bg-white hover:bg-slate-50 text-indigo-900 border border-slate-300 font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                title="Update system-wide policy parameters and dynamically recalculate all features"
+              >
+                <span>⚡ Parameters</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsDemoModalOpen(true)}
+                className="px-4 py-2 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-black transition cursor-pointer shadow-xs"
+              >
+                ★ Scenarios
+              </button>
+              <button
+                type="button"
+                onClick={() => triggerSync({ showToast: true })}
+                className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black transition cursor-pointer shadow-md shadow-indigo-600/20"
+              >
+                ↻ Cloud Sync
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main App Canvas */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
-        {/* Real Tribal Cultural Photographic Cover Banner */}
-        <TribalCoverBanner
-          currentUser={currentUser}
-          currentRole={role}
-          tribalAmbience={tribalAmbience}
-          onToggleAmbience={() => setTribalAmbience(!tribalAmbience)}
-          onOpenHeritageGallery={() => {
-            const el = document.getElementById('tribal-heritage-showcase');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-        />
-        {role === 'applicant' ? (
-          <>
-            {applicantTab === 'apply' && (
+          {/* VIEW SWITCHER FOR WORKSPACES & MODULES */}
+          <div className="max-w-6xl mx-auto space-y-6">
+            
+            {/* Feature 1: AROHA Command Center */}
+            {activeTab === 'command_center' && (
+              <CommandCenter
+                applications={applications}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+                onNavigateTab={(tab) => setActiveTab(tab as PortalTab)}
+                onUpdateParameters={handleUpdateParameters}
+                isPresetUploaded={isPresetUploaded}
+                activePresetName={activePresetName}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+                onResetToPreUploadState={handleResetToPreUploadState}
+              />
+            )}
+
+            {/* Feature 2: GIS Scholarship Intelligence Map */}
+            {activeTab === 'gis_map' && (
+              <GISScholarshipMap
+                applications={applications}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+              />
+            )}
+
+            {/* Feature 3: What-If Policy Simulator */}
+            {activeTab === 'policy_simulator' && (
+              <PolicySimulator
+                applications={applications}
+                onApplyPolicyUpdate={handleUpdateParameters}
+              />
+            )}
+
+            {/* Feature 4: Budget Forecasting Dashboard */}
+            {activeTab === 'budget_forecast' && (
+              <BudgetForecasting
+                isPresetUploaded={isPresetUploaded}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
+            )}
+
+            {/* Feature 5: AI Executive Insights Panel */}
+            {activeTab === 'executive_insights' && (
+              <ExecutiveInsights applications={applications} />
+            )}
+
+            {/* Feature 6: Government Decision Support Center */}
+            {activeTab === 'decision_support' && (
+              <DecisionSupportCenter applications={applications} />
+            )}
+
+            {/* Feature 7: Fraud & Risk Dashboard */}
+            {activeTab === 'fraud_risk' && (
+              <FraudRiskDashboard
+                applications={applications}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+              />
+            )}
+
+            {/* Feature 8: Applicant 360 Degree Profile */}
+            {activeTab === 'profile_360' && (
+              <Applicant360Profile
+                application={currentApplication}
+                allApplications={applications}
+                onSelectAnother={setSelectedAppId}
+              />
+            )}
+
+            {/* Feature 9: SLA + Escalation Pipeline */}
+            {activeTab === 'sla_pipeline' && (
+              <SLAEscalationPipeline
+                applications={applications}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+              />
+            )}
+
+            {/* Feature 10: Officer Workload Dashboard */}
+            {activeTab === 'officer_workload' && (
+              <OfficerWorkloadDashboard />
+            )}
+
+            {/* Feature 11: Merit Ranking Leaderboard */}
+            {activeTab === 'merit' && (
+              <MeritRankingView
+                applications={applications}
+                onOpenApplication={(app) => setScrutinyModalApp(app)}
+                isPresetUploaded={isPresetUploaded}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+              />
+            )}
+
+            {/* Feature 12: No-Code Rule Builder */}
+            {activeTab === 'rule_builder' && (
+              <NoCodeRuleBuilder applications={applications} />
+            )}
+
+            {/* Feature 13: Cross-Scheme Recommendation Cards */}
+            {activeTab === 'cross_scheme' && (
+              <CrossSchemeRecommender
+                application={currentApplication}
+                onApplyAlternative={(scheme) => {
+                  addToast('info', 'Scheme Selected', `Initiated application for ${scheme}.`);
+                  setActiveTab('apply');
+                }}
+              />
+            )}
+
+            {/* Feature 14: Predictive Analytics Charts */}
+            {activeTab === 'predictive_analytics' && (
+              <PredictiveAnalytics />
+            )}
+
+            {/* Feature 15: Application Version Timeline */}
+            {activeTab === 'timeline' && (
+              <VersionTimeline
+                applicationId={currentApplication.applicationNumber}
+                applicantName={currentApplication.applicant?.fullName}
+              />
+            )}
+
+            {/* Feature 16: Side-by-Side Document Comparison Viewer */}
+            {activeTab === 'doc_compare' && (
+              <DocumentComparisonViewer application={currentApplication} />
+            )}
+
+            {/* Feature 17: Automated MIS Report Generator */}
+            {activeTab === 'mis_report' && (
+              <MISReportGenerator applications={applications} />
+            )}
+
+            {/* Feature 18: Bulk Verification Queue */}
+            {activeTab === 'bulk_queue' && (
+              <BulkVerificationQueue
+                applications={applications}
+                onBatchApprove={handleBatchApprove}
+                onSelectApplication={(id) => {
+                  setSelectedAppId(id);
+                  setActiveTab('profile_360');
+                }}
+              />
+            )}
+
+            {/* Feature 19: Notification Center */}
+            {activeTab === 'notifications' && (
+              <NotificationCenter
+                currentRole={role}
+                onNavigateToTab={(t) => setActiveTab(t as PortalTab)}
+              />
+            )}
+
+            {/* Student Base: Application Form */}
+            {activeTab === 'apply' && (
               <MultiStepForm
                 isOnline={isOnline}
                 onSubmitSuccess={handleApplicationSubmitted}
@@ -712,7 +842,8 @@ export default function App() {
               />
             )}
 
-            {applicantTab === 'track' && (
+            {/* Student Base: Track Status & DBT */}
+            {activeTab === 'track' && (
               <StatusTracker
                 applications={applications}
                 selectedAppId={selectedAppId}
@@ -723,11 +854,11 @@ export default function App() {
               />
             )}
 
-            {applicantTab === 'guidelines' && <SchemeGuidelines />}
-          </>
-        ) : (
-          <>
-            {adminTab === 'scrutiny' && (
+            {/* Student Base: Scheme Guidelines */}
+            {activeTab === 'guidelines' && <SchemeGuidelines />}
+
+            {/* Officer Base: Scrutiny Queue */}
+            {activeTab === 'scrutiny' && (
               <ScrutinyQueue
                 applications={applications}
                 onOpenScrutiny={(app) => setScrutinyModalApp(app)}
@@ -736,7 +867,8 @@ export default function App() {
               />
             )}
 
-            {adminTab === 'rejections' && (
+            {/* Officer Base: Rejections Desk */}
+            {activeTab === 'rejections' && (
               <RejectionDesk
                 applications={applications}
                 onOpenApplication={(app) => setScrutinyModalApp(app)}
@@ -744,7 +876,8 @@ export default function App() {
               />
             )}
 
-            {adminTab === 'field_verification' && (
+            {/* Officer Base: Field Verification */}
+            {activeTab === 'field_verification' && (
               <FieldVerificationDesk
                 applications={applications}
                 onOpenApplication={(app) => setScrutinyModalApp(app)}
@@ -752,33 +885,15 @@ export default function App() {
               />
             )}
 
-            {adminTab === 'analytics' && (
-              <AnalyticsDashboard stats={INITIAL_SYSTEM_STATS} />
+            {/* Heritage Gallery */}
+            {activeTab === 'tribal_heritage' && (
+              <TribalHeritageGallery lang={lang} />
             )}
+          </div>
+        </main>
+      </div>
 
-            {adminTab === 'merit' && (
-              <MeritRankingView
-                applications={applications}
-                onOpenApplication={(app) => setScrutinyModalApp(app)}
-              />
-            )}
-
-            {adminTab === 'rules' && (
-              <RuleEngineConfigView
-                currentRules={rules}
-                onUpdateRules={setRules}
-                onReevaluateAll={handleReevaluateAll}
-                onToast={addToast}
-              />
-            )}
-          </>
-        )}
-
-        {/* Colorful Indigenous Tribal Art & Heritage Gallery at the bottom */}
-        <TribalHeritageGallery lang={lang} />
-      </main>
-
-      {/* Scrutiny Detail Modal */}
+      {/* Scrutiny Modal */}
       {scrutinyModalApp && (
         <ScrutinyModal
           application={scrutinyModalApp}
@@ -793,7 +908,41 @@ export default function App() {
       <DemoScenariosModal
         isOpen={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
-        onSelectScenario={handleSelectScenario}
+        onSelectScenario={(scenarioId) => {
+          if (scenarioId === 'scenario_clean_nfst') {
+            setSelectedAppId('app_nfst_001');
+            setActiveTab('profile_360');
+          } else if (scenarioId === 'scenario_deficiency_nos') {
+            setSelectedAppId('app_nos_002');
+            setActiveTab('track');
+          } else if (scenarioId === 'scenario_scrutiny_desk') {
+            setRole('officer');
+            setActiveTab('bulk_queue');
+          } else if (scenarioId === 'scenario_merit_ranking') {
+            setRole('admin');
+            setActiveTab('merit');
+          }
+          setIsDemoModalOpen(false);
+        }}
+      />
+
+      {/* Live Parameter Controller Modal */}
+      <LiveParameterModal
+        isOpen={isParamModalOpen}
+        onClose={() => setIsParamModalOpen(false)}
+        applications={applications}
+        onApplyUpdate={handleUpdateParameters}
+      />
+
+      {/* Preset Upload Modal: JSON file upload & curated scenarios */}
+      <PresetUploadModal
+        isOpen={isPresetModalOpen}
+        onClose={() => setIsPresetModalOpen(false)}
+        isPresetUploaded={isPresetUploaded}
+        activePresetName={activePresetName}
+        onApplyPresetScenario={handleApplyPresetScenario}
+        onUploadCustomPresetJson={handleUploadCustomPresetJson}
+        onResetToPreUploadState={handleResetToPreUploadState}
       />
 
       {/* Floating Micro-Interaction Toast Notifications */}
@@ -801,34 +950,6 @@ export default function App() {
 
       {/* Interactive Conversational Assistant Bot (AROHA Mitra) */}
       <ArohaMitraBot lang={lang} onNavigateTab={handleBotNavigate} />
-
-      {/* Green Forest Theme Footer with MoTA Credentials & Tribal Accent */}
-      <footer className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-emerald-200 border-t border-emerald-900 mt-auto py-6 text-xs">
-        {/* Decorative tribal motif pattern band */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-          <div className="flex items-center justify-between opacity-30 text-[10px] tracking-widest text-amber-300">
-            <span>◆ ❖ ◈ ❖ ◆</span>
-            <span className="hidden sm:inline">WARLI • GOND • SANTHAL • DOKRA • SAURA • PITHORA</span>
-            <span>◆ ❖ ◈ ❖ ◆</span>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-amber-400 text-sm tracking-wider">AROHA</span>
-            <span className="text-emerald-300">•</span>
-            <span className="font-semibold text-white">{t('motaHeader')}</span>
-            <span className="text-emerald-400/80 text-[11px] hidden md:inline">| Government of India</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-emerald-300/80 text-[11px]">
-            <span className="bg-emerald-900/80 px-2 py-0.5 rounded border border-emerald-700/60 text-emerald-200 font-semibold">{t('nfstSlots')}</span>
-            <span>•</span>
-            <span className="bg-amber-950/80 px-2 py-0.5 rounded border border-amber-700/60 text-amber-300 font-semibold">{t('nosSlots')}</span>
-            <span>•</span>
-            <span className="text-emerald-200">PFMS DBT Live</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

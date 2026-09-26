@@ -16,7 +16,48 @@ export type ApplicationStatus =
   | 'rejected'
   | 'dbt_active';
 
-export type UserRole = 'applicant' | 'admin';
+export type UserRole = 'student' | 'officer' | 'admin' | 'supervisor' | 'applicant';
+
+export interface AppNotification {
+  id: string;
+  type: 'sla_breach' | 'approval' | 'rejection' | 'deficiency' | 'dbt' | 'system';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  roleTarget?: UserRole;
+  applicationId?: string;
+}
+
+export interface ApplicationVersion {
+  version: string;
+  timestamp: string;
+  author: string;
+  summary: string;
+  changedFields: Array<{ field: string; oldVal: string; newVal: string }>;
+}
+
+export interface OfficerWorkloadItem {
+  id: string;
+  name: string;
+  designation: string;
+  desk: string;
+  assignedCount: number;
+  completedCount: number;
+  pendingCount: number;
+  overdueCount: number;
+  slaCompliance: number; // percentage
+  avatarType: string;
+}
+
+export interface PolicySimulationConfig {
+  incomeCeiling: number;
+  marksThreshold: number;
+  ageLimit: number;
+  totalSlots: number;
+  femaleQuotaPercent: number;
+}
 
 export interface AuthUser {
   id: string;

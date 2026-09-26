@@ -305,11 +305,8 @@ export const Header: React.FC<HeaderProps> = ({
                   size="xs"
                 />
                 <div className="text-left hidden md:block">
-                  <div className="font-bold text-emerald-950 text-[11px] leading-tight truncate max-w-[110px]">
-                    {currentUser.name.split(' ')[0]}
-                  </div>
-                  <div className="text-[9px] text-emerald-700 font-medium">
-                    {currentUser.role === 'admin' ? 'MoTA Officer' : 'ST Candidate'}
+                  <div className="font-bold text-emerald-950 text-[11px] leading-tight truncate max-w-[120px]">
+                    {currentUser.name}
                   </div>
                 </div>
                 <ChevronDown className="w-3 h-3 text-emerald-700" />
@@ -319,10 +316,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-emerald-200 py-2 z-50 animate-in fade-in zoom-in-95">
                   <div className="px-4 py-2 border-b border-emerald-100">
                     <div className="text-xs font-bold text-emerald-950">{currentUser.name}</div>
-                    <div className="text-[10px] text-emerald-700 truncate">{currentUser.email}</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      {currentUser.designation || currentUser.identifier}
-                    </div>
                   </div>
 
                   <div className="p-1.5 space-y-1">
