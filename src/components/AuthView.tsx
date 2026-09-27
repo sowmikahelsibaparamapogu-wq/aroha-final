@@ -8,8 +8,7 @@ import {
   Lock, 
   User, 
   Sparkles,
-  CheckCircle2,
-  Globe
+  CheckCircle2
 } from 'lucide-react';
 import { AuthUser, UserRole } from '../types/scholarship';
 import { 
@@ -19,8 +18,6 @@ import {
   DEMO_SUPERVISORS, 
   AuthService 
 } from '../services/authService';
-import { useLanguage } from '../context/LanguageContext';
-import { SUPPORTED_LANGUAGES } from '../utils/translations';
 import { Avatar } from './Avatar';
 import { PortalLogo } from './PortalLogo';
 
@@ -31,8 +28,6 @@ interface AuthViewProps {
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'student' }) => {
-  const { lang, setLanguage } = useLanguage();
-  
   // Normalize initial role
   const [selectedRole, setSelectedRole] = useState<UserRole>(() => {
     if (initialRole === 'applicant') return 'student';
@@ -44,7 +39,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
     return DEMO_STUDENTS[0].identifier;
   });
   const [passcode, setPasscode] = useState('••••••••••••');
-  const [isLangOpen, setIsLangOpen] = useState(false);
 
   // Switch role and update form preset
   const handleRoleChange = (role: UserRole) => {
@@ -100,7 +94,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
   };
 
   const currentPresets = AuthService.getDemoUsersForRole(selectedRole);
-  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === lang) || SUPPORTED_LANGUAGES[0];
 
   const portals = [
     {
@@ -184,39 +177,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
               MINISTRY OF TRIBAL AFFAIRS
             </div>
           </div>
-        </div>
-
-        {/* Language Option */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsLangOpen(!isLangOpen)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 backdrop-blur-xl hover:bg-white/30 text-white border border-white/40 text-xs font-black shadow-md transition cursor-pointer"
-          >
-            <Globe className="w-4 h-4 text-white" />
-            <span className="text-white">{currentLangObj.nativeName}</span>
-          </button>
-
-          {isLangOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white backdrop-blur-2xl border border-slate-200 rounded-2xl shadow-2xl py-2 z-50">
-              {SUPPORTED_LANGUAGES.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  onClick={() => {
-                    setLanguage(l.code);
-                    setIsLangOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between transition cursor-pointer ${
-                    lang === l.code ? 'bg-emerald-50 text-emerald-800 font-black' : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="font-bold">{l.nativeName}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{l.code.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </header>
 
