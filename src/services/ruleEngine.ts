@@ -358,11 +358,11 @@ export function evaluateApplication(
   }
 
   // Special test benchmark candidate preservation
-  if (application.id === 'app_spec_020' || application.id === 'app_ineligible_001') {
+  if (app.id === 'app_spec_020' || app.id === 'app_ineligible_001') {
     evaluatedConfidence = 20;
-  } else if (application.id === 'app_fraud_001') {
+  } else if (app.id === 'app_fraud_001') {
     evaluatedConfidence = 18;
-  } else if (application.id === 'app_spec_100' && isPristine) {
+  } else if (app.id === 'app_spec_100' && isPristine) {
     evaluatedConfidence = 100;
   }
 

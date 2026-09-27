@@ -26,9 +26,8 @@ export const TribalCoverBanner: React.FC<TribalCoverBannerProps> = ({
       {/* Real Photographic Tribal Art & Heritage Background Cover */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.unsplash.com/photo-1609137144822-45e3f436d6c7?auto=format&fit=crop&w=2000&q=85"
+          src="/forest_aesthetic_bg.jpg"
           alt="Traditional Indian Tribal Heritage and Living Indigenous Art"
-          referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center filter brightness-50 contrast-110 saturate-125 transition-transform duration-700 group-hover:scale-102"
         />
         {/* Layered Rich Gradient Vignette */}

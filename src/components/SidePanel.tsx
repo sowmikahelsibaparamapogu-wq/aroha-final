@@ -35,6 +35,7 @@ import { UserRole, AuthUser } from '../types/scholarship';
 import { Avatar } from './Avatar';
 import { useLanguage } from '../context/LanguageContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '../utils/translations';
+import { PortalLogo } from './PortalLogo';
 
 export type PortalTab = 
   | 'command_center'
@@ -156,15 +157,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 via-rose-600 to-red-700 text-white font-bold text-base flex items-center justify-center shadow-md border border-red-400/40">
-                अ
-              </div>
+              <PortalLogo portal="aroha" size="sm" />
               <div>
-                <div className="text-xs font-bold text-white tracking-wide leading-tight font-sans bg-red-900/60 px-2 py-0.5 rounded-lg border border-red-700/50 inline-block shadow-2xs">
-                  aroha MoTA
+                <div className="text-lg font-black text-white tracking-widest font-sans bg-white/15 backdrop-blur-md px-3 py-0.5 rounded-xl border border-white/20 inline-block shadow-2xs">
+                  AROHA
                 </div>
-                <div className="text-[10px] text-red-200/80 font-semibold uppercase tracking-wider font-sans mt-0.5">
-                  National Portal
+                <div className="text-[10px] text-red-200/90 font-bold uppercase tracking-wider font-sans mt-0.5">
+                  MoTA National Portal
                 </div>
               </div>
             </div>
@@ -180,13 +179,27 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           </button>
         </div>
 
-        {/* Current Active Portal Indicator */}
-        {!collapsed && (
-          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-red-950/90 border border-red-800/80 shadow-xs">
-            <span className="text-xs font-black uppercase text-red-100 tracking-wider font-['Inter',sans-serif]">
-              {resolvedRole} Workspace
-            </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+        {/* Current Active Portal Indicator with Light Coloured Colorful Logo */}
+        {!collapsed ? (
+          <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <PortalLogo portal={resolvedRole} size="xs" />
+              <div>
+                <span className="text-xs font-black uppercase text-white tracking-wider font-sans block leading-tight">
+                  {resolvedRole === 'student' ? 'Scholar Portal' :
+                   resolvedRole === 'officer' ? 'Scrutiny Portal' :
+                   resolvedRole === 'admin' ? 'Admin Portal' : 'Supervisor Portal'}
+                </span>
+                <span className="text-[9px] font-semibold text-rose-200/90 uppercase tracking-widest">
+                  Active Workspace
+                </span>
+              </div>
+            </div>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse shrink-0" />
+          </div>
+        ) : (
+          <div className="flex justify-center py-1">
+            <PortalLogo portal={resolvedRole} size="xs" />
           </div>
         )}
 

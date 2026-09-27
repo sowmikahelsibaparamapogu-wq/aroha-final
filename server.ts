@@ -287,10 +287,27 @@ QS World University Ranking: #${qsWorldRanking}`;
 
   // 5. Caste / Tribe Community Check
   if (docType === 'caste_certificate') {
-    const tribeMatch = text.match(/(?:Tribe|Community|Caste)\s*[:\-\.]?\s*([A-Za-z\s\(\)\'\-]{2,45})/i);
-    const scannedTribe = tribeMatch ? tribeMatch[1].trim().replace(/[\r\n\t]+.*/, '').trim() : (lowerText.includes('obc') ? 'OBC' : lowerText.includes('general') ? 'General' : stCommunity);
+    let scannedTribe = stCommunity;
+    const tribeMatch = text.match(/(?:Tribe|Community|Caste\s+Category|Caste)\s*[:\-]\s*([A-Za-z\s\(\)\'\-]{2,45})/i);
+    if (tribeMatch) {
+      scannedTribe = tribeMatch[1].trim().replace(/[\r\n\t]+.*/, '').trim();
+    } else if (lowerText.includes('kurmi') || lowerText.includes('obc')) {
+      scannedTribe = 'Kurmi (OBC)';
+    } else if (lowerText.includes('general')) {
+      scannedTribe = 'General (Non-ST)';
+    } else if (clean(lowerText).includes(clean(stCommunity))) {
+      scannedTribe = `${stCommunity} (Scheduled Tribe)`;
+    }
+
     extractedFields['Community / Tribe'] = scannedTribe;
-    if (clean(scannedTribe) !== clean(stCommunity)) {
+    extractedFields['Community'] = scannedTribe;
+    extractedFields['Tribe'] = stCommunity;
+
+    const normScanned = clean(scannedTribe);
+    const normEntered = clean(stCommunity);
+    const isMatchingTribe = normScanned.includes(normEntered) || normEntered.includes(normScanned);
+
+    if (!isMatchingTribe || normScanned.includes('obc') || normScanned.includes('kurmi') || normScanned.includes('general')) {
       mismatches.push(
         `Caste Category Mismatch: Document shows '${scannedTribe}' which does not match entered ST community '${stCommunity}'.`
       );

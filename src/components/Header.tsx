@@ -21,6 +21,7 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { LanguageCode, SUPPORTED_LANGUAGES, getTranslation } from '../utils/translations';
 import { useLanguage } from '../context/LanguageContext';
 import { Avatar } from './Avatar';
+import { PortalLogo } from './PortalLogo';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -103,29 +104,19 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Main navigation & controls */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
         {/* Left: Brand & Forest Emblem */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-900 p-2 text-white shadow-md flex items-center justify-center border border-emerald-600/50">
-            {/* Sacred Forest Tree & Sun Tribal Emblem */}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-amber-300">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              <path d="m19 12-4-4 4-4" />
-              <path d="m5 12 4 4-4 4" />
-            </svg>
-            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-stone-950 shadow-xs">
-              AI
-            </span>
-          </div>
+        <div className="flex items-center gap-3.5">
+          <PortalLogo portal="aroha" size="md" />
 
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold tracking-wide text-emerald-900 font-sans bg-emerald-50/80 px-2.5 py-0.5 rounded-lg border border-emerald-200/70 inline-block shadow-2xs">
-                aroha
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-black tracking-widest text-emerald-950 font-sans bg-gradient-to-r from-emerald-50 via-teal-50/90 to-amber-50/80 px-3.5 py-1 rounded-2xl border border-emerald-300/80 inline-block shadow-2xs">
+                AROHA
               </h1>
-              <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
+              <span className="bg-emerald-100 text-emerald-800 text-[11px] font-extrabold px-2.5 py-1 rounded-xl border border-emerald-300 shadow-2xs">
                 {t('versionBadge')}
               </span>
             </div>
-            <p className="text-[11px] text-emerald-800/80 font-medium hidden sm:block">
+            <p className="text-[11px] text-emerald-800/80 font-bold hidden sm:block tracking-wide mt-0.5">
               {t('portalSubtitle')}
             </p>
           </div>
@@ -304,33 +295,23 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Active Dedicated Portal Badge (Switching removed during session per user request; portal chosen at start) */}
-          <div className="flex items-center p-1 bg-emerald-950/10 rounded-2xl border border-emerald-900/15">
-            {currentRole === 'applicant' ? (
-              <div 
-                id="active-application-portal-badge"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-800 text-white text-xs font-bold shadow-xs"
-                title="Active: Scheduled Tribe Candidate Application Portal"
-              >
-                <GraduationCap className="w-4 h-4 text-amber-300" />
-                <span>Application Portal</span>
-                <span className="hidden sm:inline text-[10px] px-2 py-0.5 bg-emerald-950/70 text-emerald-200 rounded-full font-medium">
-                  ST Scholars
-                </span>
-              </div>
-            ) : (
-              <div 
-                id="active-scrutiny-portal-badge"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-800 text-white text-xs font-bold shadow-xs"
-                title="Active: MoTA Statutory Scrutiny & Verification Desk"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-300" />
-                <span>Scrutiny Portal</span>
-                <span className="hidden sm:inline text-[10px] px-2 py-0.5 bg-amber-950/70 text-amber-200 rounded-full font-medium">
-                  MoTA Officials
-                </span>
-              </div>
-            )}
+          {/* Active Dedicated Portal Badge with Light Coloured Colorful Logo */}
+          <div className="flex items-center p-1 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-2xs">
+            <div 
+              id="active-portal-badge"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200/90 text-slate-800 text-xs font-bold shadow-xs"
+              title={`Active Portal: ${currentRole}`}
+            >
+              <PortalLogo portal={currentRole} size="xs" />
+              <span className="font-black text-emerald-950 tracking-tight">
+                {currentRole === 'applicant' || currentRole === 'student' ? 'Scholar Portal' :
+                 currentRole === 'officer' ? 'Scrutiny Portal' :
+                 currentRole === 'admin' ? 'Admin Portal' : 'Supervisor Portal'}
+              </span>
+              <span className="hidden sm:inline text-[10px] px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full font-bold border border-emerald-200">
+                Active
+              </span>
+            </div>
           </div>
 
           {/* Authenticated User Profile Pill & Portal Switcher with Graphical Avatar */}

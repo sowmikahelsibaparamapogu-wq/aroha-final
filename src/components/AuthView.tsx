@@ -22,6 +22,7 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import { SUPPORTED_LANGUAGES } from '../utils/translations';
 import { Avatar } from './Avatar';
+import { PortalLogo } from './PortalLogo';
 
 interface AuthViewProps {
   onLogin: (user: AuthUser) => void;
@@ -105,42 +106,54 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
     {
       id: 'student',
       title: 'SCHOLAR',
-      subtitle: 'STUDENT PORTAL',
+      subtitle: 'STUDENT APPLICATION PORTAL',
       icon: GraduationCap,
       color: 'emerald',
-      iconBg: 'bg-emerald-600',
+      lightBg: 'bg-gradient-to-br from-emerald-100 via-teal-50 to-green-100',
+      borderColor: 'border-emerald-200',
+      iconColor: 'text-emerald-700',
+      badgeDot: 'bg-emerald-500',
       activeRing: 'ring-4 ring-emerald-400 border-emerald-500',
-      tagBg: 'bg-emerald-100 text-emerald-800'
+      tagBg: 'bg-emerald-50 text-emerald-800 border-emerald-200'
     },
     {
       id: 'officer',
       title: 'OFFICER',
-      subtitle: 'SCRUTINY PORTAL',
+      subtitle: 'SCRUTINY DESK PORTAL',
       icon: ShieldCheck,
       color: 'indigo',
-      iconBg: 'bg-indigo-600',
+      lightBg: 'bg-gradient-to-br from-sky-100 via-indigo-50 to-blue-100',
+      borderColor: 'border-indigo-200',
+      iconColor: 'text-indigo-700',
+      badgeDot: 'bg-indigo-500',
       activeRing: 'ring-4 ring-indigo-400 border-indigo-500',
-      tagBg: 'bg-indigo-100 text-indigo-800'
+      tagBg: 'bg-indigo-50 text-indigo-800 border-indigo-200'
     },
     {
       id: 'admin',
       title: 'ADMIN',
-      subtitle: 'EXECUTIVE PORTAL',
+      subtitle: 'EXECUTIVE ADMIN PORTAL',
       icon: Settings,
       color: 'amber',
-      iconBg: 'bg-amber-600',
+      lightBg: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100',
+      borderColor: 'border-amber-200',
+      iconColor: 'text-amber-700',
+      badgeDot: 'bg-amber-500',
       activeRing: 'ring-4 ring-amber-400 border-amber-500',
-      tagBg: 'bg-amber-100 text-amber-800'
+      tagBg: 'bg-amber-100 text-amber-800 border-amber-200'
     },
     {
       id: 'supervisor',
       title: 'SUPERVISOR',
-      subtitle: 'APEX PORTAL',
+      subtitle: 'APEX SUPERVISORY PORTAL',
       icon: Compass,
       color: 'violet',
-      iconBg: 'bg-violet-600',
+      lightBg: 'bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100',
+      borderColor: 'border-purple-200',
+      iconColor: 'text-purple-700',
+      badgeDot: 'bg-purple-500',
       activeRing: 'ring-4 ring-violet-400 border-violet-500',
-      tagBg: 'bg-violet-100 text-violet-800'
+      tagBg: 'bg-violet-100 text-violet-800 border-purple-200'
     },
   ];
 
@@ -210,22 +223,34 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
       {/* Main Container - Big Inter Typography, White Big Box Portal Options, Zero Description */}
       <main className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center">
         
-        {/* Soft Style aroha Title - Small Comparatively but Bold */}
-        <div className="text-center mb-7">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-emerald-100 text-[11px] font-bold tracking-wider uppercase mb-2.5">
-            <span>Ministry of Tribal Affairs</span>
+        {/* Soft Style AROHA Title - BIG, BOLD CAPITAL BEAUTIFUL FONT */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-emerald-100 text-xs font-bold tracking-widest uppercase mb-3 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>Ministry of Tribal Affairs • Government of India</span>
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold font-sans tracking-wide text-white drop-shadow-md bg-white/15 backdrop-blur-md px-6 py-2 rounded-2xl border border-white/25 inline-block shadow-lg">
-              aroha
+
+          <div className="flex items-center justify-center gap-3.5 my-1">
+            {/* Master Light Coloured Colorful AROHA Emblem */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-gradient-to-br from-emerald-100/90 via-teal-50 to-amber-100/90 p-2.5 text-emerald-800 shadow-xl flex items-center justify-center border-2 border-white/80 shrink-0 backdrop-blur-md">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-emerald-700">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                <path d="m19 12-4-4 4-4" />
+                <path d="m5 12 4 4-4 4" />
+              </svg>
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-sans tracking-[0.16em] uppercase text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.35)] bg-gradient-to-r from-white/30 via-emerald-100/25 to-white/30 backdrop-blur-xl px-8 sm:px-12 py-2.5 sm:py-3 rounded-3xl border border-white/40 shadow-2xl inline-block">
+              AROHA
             </h1>
           </div>
-          <div className="text-xs sm:text-sm font-semibold tracking-wider text-emerald-100/90 uppercase mt-2 drop-shadow">
-            National Tribal Higher Education Portal
+
+          <div className="text-xs sm:text-sm font-bold tracking-widest text-emerald-100 uppercase mt-2.5 drop-shadow">
+            AI-Enabled Scholarship & Fellowship Management System
           </div>
         </div>
 
-        {/* 4 BOXES NOT IN LINE (2x2 GRID), ALL 4 BIG CARDS, SMALL FONT, LIGHT LOGOS */}
+        {/* 4 PORTAL CARDS WITH LIGHT COLOURED COLORFUL LOGOS */}
         <div className="w-full max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-8">
           {portals.map((portal) => {
             const Icon = portal.icon;
@@ -235,26 +260,27 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
                 key={portal.id}
                 type="button"
                 onClick={() => handleRoleChange(portal.id as UserRole)}
-                className={`bg-white rounded-3xl p-6 sm:p-7 min-h-[155px] transition-all duration-300 flex flex-col items-center justify-center cursor-pointer shadow-xl border-2 text-center group ${
+                className={`bg-white rounded-3xl p-6 sm:p-7 min-h-[160px] transition-all duration-300 flex flex-col items-center justify-center cursor-pointer shadow-xl border-2 text-center group ${
                   isSelected
                     ? 'ring-4 ring-emerald-400 border-emerald-500 scale-102 shadow-emerald-950/30'
                     : 'border-white/80 hover:border-white hover:scale-[1.01] hover:shadow-2xl opacity-95 hover:opacity-100'
                 }`}
               >
-                {/* Light Subtle Logo */}
+                {/* Light Coloured Colorful Logo for Portal */}
                 <div
-                  className="w-11 h-11 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/70 flex items-center justify-center mb-3 opacity-60 group-hover:opacity-90 group-hover:scale-105 transition-all shadow-xs"
+                  className={`w-14 h-14 rounded-2xl ${portal.lightBg} border ${portal.borderColor} flex items-center justify-center mb-3 shadow-xs group-hover:scale-110 transition-transform relative`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${portal.badgeDot} border-2 border-white shadow-xs`} />
+                  <Icon className={`w-7 h-7 ${portal.iconColor}`} />
                 </div>
                 
-                {/* Small Font Title */}
-                <div className="text-sm sm:text-base font-bold tracking-tight text-slate-800">
-                  {portal.title}
+                {/* Portal Title */}
+                <div className="text-base sm:text-lg font-black tracking-tight text-slate-800 flex items-center gap-1.5">
+                  <span>{portal.title}</span>
                 </div>
                 
-                {/* Small Font Subtitle */}
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
+                {/* Subtitle with Portal Name */}
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-1">
                   {portal.subtitle}
                 </span>
               </button>
@@ -269,12 +295,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
             {/* Direct Form */}
             <form onSubmit={handleFormSubmit} className="md:col-span-6 space-y-4">
               <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
-                <span className="text-2xl font-black text-slate-800 uppercase tracking-tight">
-                  {selectedRole === 'student' && 'Scholar Access'}
-                  {selectedRole === 'officer' && 'Officer Access'}
-                  {selectedRole === 'admin' && 'Admin Console'}
-                  {selectedRole === 'supervisor' && 'Apex Access'}
-                </span>
+                <div className="flex items-center gap-3">
+                  <PortalLogo portal={selectedRole} size="sm" />
+                  <span className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tight">
+                    {selectedRole === 'student' && 'Scholar Access'}
+                    {selectedRole === 'officer' && 'Officer Access'}
+                    {selectedRole === 'admin' && 'Admin Console'}
+                    {selectedRole === 'supervisor' && 'Apex Access'}
+                  </span>
+                </div>
                 <span className="text-xs font-black uppercase px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                   {selectedRole}
                 </span>

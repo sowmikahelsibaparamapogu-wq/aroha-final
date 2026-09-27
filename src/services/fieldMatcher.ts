@@ -145,7 +145,14 @@ export function matchEnteredFieldsWithDocument(
 
   // 2. ST Community / Tribe Verification (Caste Certificate)
   if (doc.type === 'caste_certificate') {
-    const rawDocTribe = (extracted['Community / Tribe'] || '') as string;
+    const rawDocTribe = (
+      extracted['Community / Tribe'] ||
+      extracted['Community'] ||
+      extracted['Tribe'] ||
+      extracted['Community / Caste'] ||
+      extracted['Category Recorded'] ||
+      ''
+    ) as string;
     const cleanedDocTribe = cleanString(rawDocTribe);
     const enteredTribe = cleanString(entered.stCommunity);
 
@@ -262,7 +269,7 @@ export function matchEnteredFieldsWithDocument(
 
   // 4. Academic Percentage Verification (Marksheet)
   if (doc.type === 'marksheet') {
-    const rawDocPercentage = extracted['Aggregate Percentage'];
+    const rawDocPercentage = extracted['Aggregate Percentage'] || extracted['Percentage'];
     if (rawDocPercentage) {
       const docPct = parseFloat(String(rawDocPercentage).replace(/[^0-9.]/g, ''));
       const enteredPct = Number(entered.qualifyingPercentage);
@@ -272,7 +279,9 @@ export function matchEnteredFieldsWithDocument(
 
       if (fallsShortOfSTCutoff || pctMismatch) {
         let errMsg = '';
-        if (fallsShortOfSTCutoff) {
+        if (fallsShortOfSTCutoff && pctMismatch) {
+          errMsg = `Academic Cutoff & Form Mismatch: Scanned marksheet records ${docPct}% (fails MoTA statutory 55.0% cutoff), conflicting with application claim of ${enteredPct}%.`;
+        } else if (fallsShortOfSTCutoff) {
           errMsg = `ERROR: Scanned Marksheet aggregate (${docPct}%) is BELOW the mandatory MoTA 55.0% cutoff for ST candidates.`;
         } else {
           errMsg = `ERROR: Entered Qualifying Percentage (${enteredPct}%) does not match Scanned Marksheet (${docPct}%).`;
@@ -284,7 +293,7 @@ export function matchEnteredFieldsWithDocument(
           enteredValue: `${enteredPct}%`,
           scannedValue: `${docPct}%`,
           isMatch: false,
-          matchPercentage: fallsShortOfSTCutoff ? 40 : 70,
+          matchPercentage: docPct <= 19 ? 19 : (fallsShortOfSTCutoff ? 40 : 70),
           differenceSummary: `Academic score mismatch: Form has ${enteredPct}% vs Document ${docPct}%`,
           errorMessage: errMsg,
           severity: 'CRITICAL_ERROR',
@@ -349,22 +358,36 @@ export function matchEnteredFieldsWithDocument(
 
   // Check if the document was detected as wrong, incompatible, or slot mismatched
   const lowerDocName = doc.name.toLowerCase();
-  const wrongKeywords = [
-    'wrong', 'fake', 'invalid', 'dummy', 'fail',
-    'bill', 'receipt', 'invoice', 'electricity', 'gas', 'water', 'rent',
-    'salary', 'pay_slip', 'payslip', 'bank_statement', 'passbook',
-    'aadhaar', 'aadhar', 'pan_card', 'pancard', 'voter', 'driving_licence', 'dl',
-    'ration', 'resume', 'cv', 'photo', 'selfie', 'screenshot',
-    'cat', 'dog', 'car', 'ticket', 'tax', 'gst'
+
+  const explicitBadPhrases = [
+    'wrong document', 'wrong doc', 'wrong file', 'fake doc', 'fake certificate',
+    'invalid doc', 'dummy doc', 'electricity bill', 'electric bill', 'energy bill',
+    'utility bill', 'power bill', 'water bill', 'gas bill', 'rent receipt',
+    'salary slip', 'pay slip', 'payslip', 'bank statement', 'passbook',
+    'voter card', 'voter id', 'driving licence', 'driving license',
+    'ration card', 'curriculum vitae', 'tampered'
   ];
+
+  const badWordTokens = new Set([
+    'wrong', 'fake', 'invalid', 'dummy', 'fail', 'mismatch',
+    'electricity', 'invoice', 'bill', 'receipt', 'payslip', 'passbook',
+    'voter', 'ration', 'resume', 'selfie', 'screenshot',
+    'cat', 'dog', 'puppy', 'kitten', 'car'
+  ]);
+
+  const nameTokens = lowerDocName.replace(/\.[^/.]+$/, '').split(/[\W_]+/);
+  const hasBadToken = nameTokens.some((token) => badWordTokens.has(token));
+  const hasBadPhrase = explicitBadPhrases.some(
+    (phrase) => lowerDocName.includes(phrase.replace(/\s+/g, '_')) || lowerDocName.includes(phrase)
+  );
 
   const detectedDocType = (extracted['Document Type Detected'] as string) || '';
   let isWrongTypeSlot = false;
   if (detectedDocType) {
     const lowerDetected = detectedDocType.toLowerCase();
-    if (doc.type === 'marksheet' && !lowerDetected.includes('marksheet') && !lowerDetected.includes('transcript') && !lowerDetected.includes('academic')) {
+    if (doc.type === 'marksheet' && !lowerDetected.includes('marksheet') && !lowerDetected.includes('transcript') && !lowerDetected.includes('academic') && !lowerDetected.includes('degree')) {
       isWrongTypeSlot = true;
-    } else if (doc.type === 'caste_certificate' && !lowerDetected.includes('tribe') && !lowerDetected.includes('caste') && !lowerDetected.includes('community')) {
+    } else if (doc.type === 'caste_certificate' && !lowerDetected.includes('tribe') && !lowerDetected.includes('caste') && !lowerDetected.includes('community') && !lowerDetected.includes('st certificate')) {
       isWrongTypeSlot = true;
     } else if (doc.type === 'income_certificate' && !lowerDetected.includes('income')) {
       isWrongTypeSlot = true;
@@ -374,7 +397,8 @@ export function matchEnteredFieldsWithDocument(
   }
 
   const isWrongDocument =
-    wrongKeywords.some((kw) => lowerDocName.includes(kw)) ||
+    hasBadToken ||
+    hasBadPhrase ||
     isWrongTypeSlot ||
     String(extracted['Verification Status'] || '').toLowerCase().includes('incompatible');
 

@@ -29,6 +29,16 @@ export const DemoScenariosModal: React.FC<DemoScenariosModalProps> = ({
 
   const scenarios = [
     {
+      id: 'scenario_sowmika_19_marksheet',
+      title: 'Scenario: Sowmika Marksheet 19% Document Discrepancy',
+      category: 'Document Cutoff & OCR Variance',
+      description: 'Pre-fills Sowmika Helsiba (Gond Tribe, Adilabad) with 74.5% entered in form, but uploaded marksheet extracts to 19% with 19% OCR confidence. Inspect the 360° Dossier and character-by-character audit.',
+      badge: '19% Marksheet Doc Discrepancy',
+      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      icon: AlertTriangle,
+      role: 'applicant',
+    },
+    {
       id: 'scenario_name_mismatch',
       title: 'Scenario: Document Name Mismatch Error (Jemimah Khasi / Lapang)',
       category: 'AI OCR & Scrutiny Flow',

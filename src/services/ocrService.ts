@@ -16,6 +16,7 @@ export interface OCRSimulationParams {
   annualIncome?: number;
   qualifyingPercentage?: number;
   state?: string;
+  district?: string;
   offerStatus?: string;
   qsWorldRanking?: number;
   scheme?: 'NFST' | 'NOS';
@@ -79,15 +80,29 @@ export async function simulateOCRExtraction(
   const tribe = params.stCommunity || 'Gond';
   const lowerName = params.fileName.toLowerCase();
 
-  const wrongKeywords = [
-    'wrong', 'fake', 'invalid', 'dummy', 'test', 'fail', 'mismatch', 'lapang',
-    'bill', 'receipt', 'invoice', 'electricity', 'gas', 'water', 'rent',
-    'salary', 'pay_slip', 'payslip', 'bank_statement', 'passbook',
-    'aadhaar', 'aadhar', 'pan_card', 'pancard', 'voter', 'driving_licence', 'dl',
-    'ration', 'resume', 'cv', 'photo', 'selfie', 'screenshot', 'random',
-    'cat', 'dog', 'car', 'ticket', 'tax', 'gst'
+  const explicitBadPhrases = [
+    'wrong document', 'wrong doc', 'wrong file', 'fake doc', 'fake certificate',
+    'invalid doc', 'dummy doc', 'electricity bill', 'electric bill', 'energy bill',
+    'utility bill', 'power bill', 'water bill', 'gas bill', 'rent receipt',
+    'salary slip', 'pay slip', 'payslip', 'bank statement', 'passbook',
+    'voter card', 'voter id', 'driving licence', 'driving license',
+    'ration card', 'curriculum vitae', 'tampered'
   ];
-  const isWrongFile = params.forceMismatch || wrongKeywords.some((kw) => lowerName.includes(kw));
+
+  const badWordTokens = new Set([
+    'wrong', 'fake', 'invalid', 'dummy', 'fail', 'mismatch', 'lapang',
+    'electricity', 'invoice', 'bill', 'receipt', 'payslip', 'passbook',
+    'voter', 'ration', 'resume', 'selfie', 'screenshot',
+    'cat', 'dog', 'puppy', 'kitten', 'car'
+  ]);
+
+  const nameTokens = lowerName.replace(/\.[^/.]+$/, '').split(/[\W_]+/);
+  const hasBadToken = nameTokens.some((token) => badWordTokens.has(token));
+  const hasBadPhrase = explicitBadPhrases.some(
+    (phrase) => lowerName.includes(phrase.replace(/\s+/g, '_')) || lowerName.includes(phrase)
+  );
+
+  const isWrongFile = params.forceMismatch || hasBadToken || hasBadPhrase;
 
   let slotMismatch = false;
   let slotMismatchMessage = '';
@@ -133,17 +148,23 @@ export async function simulateOCRExtraction(
 
       return {
         ocrStatus: isDiscrepancy ? 'mismatch' : 'verified',
-        ocrConfidence: isDiscrepancy ? 20 : 96,
+        ocrConfidence: isDiscrepancy ? 20 : 100,
         extractedFields: {
           'Document Type Detected': slotMismatch ? 'Wrong / Incompatible File' : 'Scheduled Tribe Certificate',
           'Applicant Name in Document': extractedDocName,
+          'Applicant Name': extractedDocName,
           'Candidate Name': extractedDocName,
-          'Father / Guardian': isDifferentCandidate ? 'Shri SURENDRA VERMA' : (params.fatherName || 'Late Shri P. Rameshwar'),
+          'Father / Guardian': isDifferentCandidate ? 'Shri SURENDRA VERMA' : (params.fatherName || 'P. Rameshwar'),
           'Community / Tribe': parsedTribe,
+          'Community': parsedTribe,
+          'Tribe': tribe,
           'State / UT': isDiscrepancy ? 'Jharkhand' : (params.state || 'Telangana'),
+          'District': isDiscrepancy ? 'Ranchi' : (params.district || 'Adilabad'),
           'Issuing Authority': isDiscrepancy ? 'Sub-Divisional Officer, Ranchi' : 'Sub-Divisional Magistrate (SDM), Adilabad',
+          'Certificate No': isDiscrepancy ? 'JH/OBC/2017/0921' : 'TG/ST/2023/009182',
           'Digital Barcode': isDiscrepancy ? 'INVALID / CANNOT BE VERIFIED' : 'VALID (e-Pramaan Barcode Verified)',
           'Issue Date': isDiscrepancy ? '14-August-2017' : '18-May-2023',
+          'Verification Status': isDiscrepancy ? 'Incompatible Caste Category' : 'Authentic ST Certificate',
         },
         mismatches,
       };

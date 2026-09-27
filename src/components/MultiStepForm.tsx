@@ -436,7 +436,9 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
     onSubmitSuccess(finalizedApp);
   };
 
-  const loadSamplePreset = (presetType: 'mismatch' | 'clean' | 'nos_variation') => {
+  const loadSamplePreset = (
+    presetType: 'mismatch' | 'clean' | 'nos_variation' | 'ineligible_marks' | 'fraud_wrong_docs' | 'perfect_100' | 'sowmika_19_marksheet'
+  ) => {
     setIsSampleDropdownOpen(false);
 
     if (presetType === 'mismatch') {
@@ -596,11 +598,22 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           size: 780000,
           uploadedAt: new Date().toISOString(),
           ocrStatus: 'verified',
-          ocrConfidence: 99,
+          ocrConfidence: 100,
           extractedFields: {
+            'Document Type Detected': 'Scheduled Tribe Certificate',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
             'Applicant Name': 'Sowmika Helsiba Paramapogu',
-            'Community': 'Gond (ST)',
+            'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Father / Guardian': 'P. Rameshwar',
+            'Community / Tribe': 'Gond (Scheduled Tribe)',
+            'Community': 'Gond (Scheduled Tribe)',
+            'Tribe': 'Gond',
+            'State / UT': 'Telangana',
+            'District': 'Adilabad',
+            'Issuing Authority': 'Sub-Divisional Magistrate (SDM), Adilabad',
+            'Certificate No': 'TG/ST/2023/009182',
             'Digital Barcode': 'VALID (e-Pramaan Government Barcode Verified)',
+            'Verification Status': 'Authentic ST Certificate',
           },
           mismatches: [],
         },
@@ -611,11 +624,15 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           size: 1100000,
           uploadedAt: new Date().toISOString(),
           ocrStatus: 'verified',
-          ocrConfidence: 97,
+          ocrConfidence: 100,
           extractedFields: {
+            'Document Type Detected': 'Academic Marksheet / Transcript',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
             'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Father / Guardian': 'P. Rameshwar',
             'Aggregate Percentage': '74.5%',
             'Institution': 'University of Hyderabad',
+            'Division': 'First Class with Distinction',
           },
           mismatches: [],
         },
@@ -626,9 +643,11 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           size: 530000,
           uploadedAt: new Date().toISOString(),
           ocrStatus: 'verified',
-          ocrConfidence: 99,
+          ocrConfidence: 100,
           extractedFields: {
             'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
+            'Roll Number': 'TG01004829',
             'Score Percentile': '98.42',
             'JRF Status': 'Awarded',
           },
@@ -638,6 +657,119 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
 
       setActiveSampleNotice(null);
       onToast('success', 'Sample Loaded: Clean Application', 'Loaded Sowmika Helsiba with 100% verified matching documents.');
+    } else if (presetType === 'sowmika_19_marksheet') {
+      // ⚠️ TEST CASE: Sowmika with 19% Marksheet Document Discrepancy
+      setScheme('NFST');
+      setCurrentStep(1);
+      setFormData((prev) => ({
+        ...prev,
+        fullName: 'Sowmika Helsiba Paramapogu',
+        fatherName: 'P. Rameshwar',
+        motherName: 'P. Sharada',
+        gender: 'Female',
+        dob: '1998-04-12',
+        aadhaarNumber: 'XXXX-XXXX-8921',
+        mobile: '+91 98480 12345',
+        email: 'sowmikahelsibaparamapogu@gmail.com',
+        stCommunity: 'Gond',
+        state: 'Telangana',
+        district: 'Adilabad',
+        pincode: '504001',
+        domicileState: 'Telangana',
+        qualifyingDegree: 'M.Sc. in Biotechnology',
+        qualifyingPercentage: 74.5,
+        passingYear: 2024,
+        institutionName: 'University of Hyderabad',
+        targetProgram: 'Ph.D',
+        specialization: 'Tribal Pharmacognosy & Indigenous Medicine',
+        researchTopic: 'Bioactive compounds from sacred groves of Eastern Ghats and their ethnopharmacological validation',
+        ugcNetRollNo: 'TG01004829',
+        ugcNetScore: 98.42,
+        isJrfQualified: true,
+        annualFamilyIncome: 340000,
+        parentOccupation: 'Forest Produce & Agriculture',
+        accountHolderName: 'Sowmika Helsiba Paramapogu',
+        accountNumber: '38192019482',
+        ifscCode: 'SBIN0020491',
+        bankName: 'State Bank of India',
+        branchName: 'Adilabad Main Branch',
+        isAadhaarSeeded: true,
+      }));
+
+      setDocuments([
+        {
+          id: `doc_sowmika_caste_${Date.now()}`,
+          type: 'caste_certificate',
+          name: 'Gond_ST_Certificate_Adilabad.pdf',
+          size: 780000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 100,
+          extractedFields: {
+            'Document Type Detected': 'Scheduled Tribe Certificate',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
+            'Applicant Name': 'Sowmika Helsiba Paramapogu',
+            'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Father / Guardian': 'P. Rameshwar',
+            'Community / Tribe': 'Gond (Scheduled Tribe)',
+            'Community': 'Gond (Scheduled Tribe)',
+            'Tribe': 'Gond',
+            'State / UT': 'Telangana',
+            'District': 'Adilabad',
+            'Issuing Authority': 'Sub-Divisional Magistrate (SDM), Adilabad',
+            'Certificate No': 'TG/ST/2023/009182',
+            'Digital Barcode': 'VALID (e-Pramaan Government Barcode Verified)',
+            'Verification Status': 'Authentic ST Certificate',
+          },
+          mismatches: [],
+        },
+        {
+          id: `doc_sowmika_marks_${Date.now()}`,
+          type: 'marksheet',
+          name: 'MSc_Biotech_Consolidated_Marksheet.pdf',
+          size: 1100000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'mismatch',
+          ocrConfidence: 19,
+          extractedFields: {
+            'Document Type Detected': 'Academic Marksheet / Transcript',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
+            'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Father / Guardian': 'P. Rameshwar',
+            'Aggregate Percentage': '19%',
+            'Percentage': '19%',
+            'Institution': 'University of Hyderabad',
+            'Division': 'Below Statutory Minimum (19%)',
+          },
+          mismatches: [
+            'Academic Cutoff Variance: Uploaded marksheet indicates 19% aggregate, failing statutory 55% threshold and conflicting with entered 74.5%.'
+          ],
+        },
+        {
+          id: `doc_sowmika_net_${Date.now()}`,
+          type: 'bonafide_certificate',
+          name: 'UGC_NET_JRF_Award_Letter.pdf',
+          size: 530000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 100,
+          extractedFields: {
+            'Candidate Name': 'Sowmika Helsiba Paramapogu',
+            'Applicant Name in Document': 'Sowmika Helsiba Paramapogu',
+            'Roll Number': 'TG01004829',
+            'Score Percentile': '98.42',
+            'JRF Status': 'Awarded',
+          },
+          mismatches: [],
+        },
+      ]);
+
+      setActiveSampleNotice('sowmika_19_marksheet');
+      onToast(
+        'warning',
+        'Preset Loaded: Sowmika (19% Marksheet Doc)',
+        'Loaded Sowmika Helsiba. Form has 74.5% entered, but scanned marksheet reads 19% (failing statutory 55.0% cutoff).'
+      );
     } else if (presetType === 'nos_variation') {
       setScheme('NOS');
       setCurrentStep(1);
@@ -1042,37 +1174,15 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
 
         {/* Scheme Switcher & Preset Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Quick 1-Click Button for Ineligible Candidate */}
+          {/* Quick 1-Click Button for Sowmika 19% Marksheet Scenario */}
           <button
             type="button"
-            onClick={() => loadSamplePreset('ineligible_marks')}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-900 bg-rose-100/90 hover:bg-rose-200 border border-rose-300 rounded-xl transition cursor-pointer shadow-xs"
-            title="Load ineligible candidate with 38% marks (fails statutory cutoff, submission blocked)"
+            onClick={() => loadSamplePreset('sowmika_19_marksheet')}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-xl transition cursor-pointer shadow-xs"
+            title="Load Sowmika Helsiba with 19% marksheet document (74.5% entered vs 19% scanned)"
           >
-            <AlertCircle className="w-3.5 h-3.5 text-rose-700" />
-            <span>🚫 Ineligible (38% Marks)</span>
-          </button>
-
-          {/* Quick 1-Click Button for Wrong Docs */}
-          <button
-            type="button"
-            onClick={() => loadSamplePreset('fraud_wrong_docs')}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 rounded-xl transition cursor-pointer shadow-xs"
-            title="Load candidate with commercial electricity bill uploaded in caste slot (18% confidence)"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-            <span>⚠️ Wrong Docs (18%)</span>
-          </button>
-
-          {/* Quick 1-Click Button for 100% Clean */}
-          <button
-            type="button"
-            onClick={() => loadSamplePreset('perfect_100')}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-900 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition cursor-pointer shadow-xs"
-            title="Load 100% verified application with 88.5% marks and pristine documents"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-            <span>✅ 100% Clean</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+            <span>Sowmika (19% Marksheet)</span>
           </button>
 
           {/* Quick 1-Click Button for Name Mismatch Scenario */}
@@ -1113,6 +1223,26 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
                 </div>
 
                 <div className="py-1 space-y-1">
+                  {/* Option: Sowmika 19% Marksheet Document Discrepancy */}
+                  <button
+                    type="button"
+                    onClick={() => loadSamplePreset('sowmika_19_marksheet')}
+                    className="w-full text-left p-2.5 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 group-hover:text-rose-900 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        Sowmika: 19% Marksheet Doc
+                      </span>
+                      <span className="text-[10px] font-semibold bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">
+                        19% Doc Mismatch
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 group-hover:text-rose-900 mt-1 leading-relaxed">
+                      Pre-fills 74.5% in form, but scanned marksheet doc reads 19% (failing statutory 55.0% cutoff).
+                    </p>
+                  </button>
+
                   {/* Option 1: Name Mismatch in Document */}
                   <button
                     type="button"
@@ -1247,6 +1377,50 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           })}
         </div>
       </div>
+
+      {/* Active Sample Notice Banner: Sowmika 19% Marksheet Document Discrepancy */}
+      {activeSampleNotice === 'sowmika_19_marksheet' && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-rose-50 to-red-50 border border-rose-300 rounded-2xl text-rose-950 shadow-xs animate-in fade-in">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-rose-200 text-rose-800 flex items-center justify-center flex-shrink-0 mt-0.5 border border-rose-300">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs font-bold text-rose-950 uppercase tracking-wide">
+                    Preset Active: Sowmika Marksheet 19% Document Discrepancy
+                  </h4>
+                  <span className="text-[10px] font-bold bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full border border-rose-300">
+                    Fails Statutory 55.0% Cutoff
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-rose-900 leading-relaxed">
+                  Candidate <strong>Sowmika Helsiba Paramapogu</strong> entered <strong>74.5%</strong> in Step 2, but the attached marksheet file (<strong>MSc_Biotech_Consolidated_Marksheet.pdf</strong>) extracts to <strong>19%</strong> with 19% OCR confidence. This triggers an automated statutory cutoff mismatch and flags the dossier for scrutiny resolution.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1 bg-white/90 px-2 py-1 rounded-lg border border-rose-200 font-medium text-slate-700">
+                    Step 2: Form Marks = <strong>74.5%</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1 bg-white/90 px-2 py-1 rounded-lg border border-rose-200 font-medium text-rose-700">
+                    Step 4: Scanned Marksheet = <strong>19%</strong> (Mismatch Error)
+                  </span>
+                  <span className="inline-flex items-center gap-1 bg-white/90 px-2 py-1 rounded-lg border border-rose-200 font-medium text-amber-800">
+                    Statutory Rule: <strong>Requires ≥55.0% for ST</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSampleNotice(null)}
+              className="text-rose-700 hover:text-rose-900 text-xs font-semibold px-2 py-1 rounded-md hover:bg-rose-200/50 transition cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Sample Notice Banner */}
       {(activeSampleNotice === 'name_mismatch' || hasNameMismatchInDoc) && (

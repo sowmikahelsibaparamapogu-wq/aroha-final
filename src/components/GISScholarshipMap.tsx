@@ -42,69 +42,7 @@ export interface StateAggregatedData extends StateRecord {
   concentrationLevel: 'very_high' | 'high' | 'moderate' | 'emerging' | 'zero';
 }
 
-// Geometric coordinates for Indian states / UTs on the interactive visual map
-interface StateSvgNode {
-  code: string;
-  name: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  rx?: number;
-  zone: string;
-}
-
-const INDIA_GEO_NODES: StateSvgNode[] = [
-  // North
-  { code: 'JK', name: 'Jammu & Kashmir', x: 190, y: 35, w: 105, h: 48, zone: 'North' },
-  { code: 'LA', name: 'Ladakh', x: 275, y: 20, w: 85, h: 48, zone: 'North' },
-  { code: 'HP', name: 'Himachal Pradesh', x: 230, y: 92, w: 80, h: 42, zone: 'North' },
-  { code: 'PB', name: 'Punjab', x: 165, y: 95, w: 60, h: 42, zone: 'North' },
-  { code: 'UK', name: 'Uttarakhand', x: 285, y: 125, w: 75, h: 42, zone: 'North' },
-  { code: 'HR', name: 'Haryana', x: 205, y: 142, w: 62, h: 42, zone: 'North' },
-  { code: 'DL', name: 'Delhi', x: 250, y: 162, w: 38, h: 28, zone: 'North' },
-
-  // West
-  { code: 'RJ', name: 'Rajasthan', x: 110, y: 175, w: 110, h: 72, zone: 'West' },
-  { code: 'GJ', name: 'Gujarat', x: 80, y: 260, w: 105, h: 68, zone: 'West' },
-  { code: 'MH', name: 'Maharashtra', x: 195, y: 340, w: 120, h: 78, zone: 'West' },
-  { code: 'GA', name: 'Goa', x: 175, y: 440, w: 42, h: 28, zone: 'West' },
-
-  // Central
-  { code: 'MP', name: 'Madhya Pradesh', x: 235, y: 235, w: 128, h: 75, zone: 'Central' },
-  { code: 'CG', name: 'Chhattisgarh', x: 345, y: 300, w: 82, h: 75, zone: 'Central' },
-
-  // East
-  { code: 'UP', name: 'Uttar Pradesh', x: 295, y: 175, w: 115, h: 65, zone: 'East' },
-  { code: 'BR', name: 'Bihar', x: 420, y: 195, w: 85, h: 52, zone: 'East' },
-  { code: 'JH', name: 'Jharkhand', x: 415, y: 260, w: 82, h: 54, zone: 'East' },
-  { code: 'OD', name: 'Odisha', x: 395, y: 335, w: 90, h: 65, zone: 'East' },
-  { code: 'WB', name: 'West Bengal', x: 490, y: 260, w: 75, h: 65, zone: 'East' },
-
-  // South
-  { code: 'TG', name: 'Telangana', x: 275, y: 380, w: 95, h: 62, zone: 'South' },
-  { code: 'AP', name: 'Andhra Pradesh', x: 285, y: 445, w: 105, h: 65, zone: 'South' },
-  { code: 'KA', name: 'Karnataka', x: 195, y: 428, w: 85, h: 80, zone: 'South' },
-  { code: 'KL', name: 'Kerala', x: 215, y: 520, w: 55, h: 75, zone: 'South' },
-  { code: 'TN', name: 'Tamil Nadu', x: 275, y: 518, w: 85, h: 78, zone: 'South' },
-
-  // North-East
-  { code: 'SK', name: 'Sikkim', x: 495, y: 170, w: 46, h: 32, zone: 'North-East' },
-  { code: 'AS', name: 'Assam', x: 575, y: 185, w: 85, h: 48, zone: 'North-East' },
-  { code: 'AR', name: 'Arunachal Pradesh', x: 625, y: 140, w: 90, h: 44, zone: 'North-East' },
-  { code: 'ML', name: 'Meghalaya', x: 570, y: 236, w: 68, h: 32, zone: 'North-East' },
-  { code: 'NL', name: 'Nagaland', x: 670, y: 200, w: 52, h: 34, zone: 'North-East' },
-  { code: 'MN', name: 'Manipur', x: 660, y: 238, w: 52, h: 34, zone: 'North-East' },
-  { code: 'MZ', name: 'Mizoram', x: 630, y: 275, w: 48, h: 40, zone: 'North-East' },
-  { code: 'TR', name: 'Tripura', x: 580, y: 272, w: 46, h: 34, zone: 'North-East' },
-
-  // Union Territories Islands
-  { code: 'AN', name: 'Andaman & Nicobar', x: 655, y: 460, w: 72, h: 60, zone: 'Union Territory' },
-  { code: 'LD', name: 'Lakshadweep', x: 135, y: 515, w: 62, h: 45, zone: 'Union Territory' },
-  { code: 'PY', name: 'Puducherry', x: 365, y: 535, w: 55, h: 28, zone: 'Union Territory' },
-  { code: 'CH', name: 'Chandigarh', x: 195, y: 130, w: 32, h: 20, zone: 'Union Territory' },
-  { code: 'DH', name: 'Dadra & Nagar Haveli and Daman & Diu', x: 95, y: 328, w: 85, h: 28, zone: 'Union Territory' },
-];
+import { INDIA_REALISTIC_STATE_PATHS, IndiaStatePath } from '../data/indiaMapPaths';
 
 export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
   applications,
@@ -561,135 +499,140 @@ export const GISScholarshipMap: React.FC<GISScholarshipMapProps> = ({
                 </div>
               </div>
 
-              {/* Interactive SVG Geospatial Map of India */}
+              {/* Interactive Realistic SVG Geospatial Map of India */}
               <div className="relative z-10 w-full overflow-x-auto pb-2">
                 <svg
-                  viewBox="0 0 750 600"
-                  className="w-full h-auto min-w-[580px] max-h-[520px] select-none"
-                  style={{ filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.06))' }}
+                  viewBox="-15 -10 465 515"
+                  className="w-full h-auto min-w-[540px] max-h-[640px] select-none rounded-2xl bg-gradient-to-b from-sky-50/40 via-white to-indigo-50/30"
+                  style={{ filter: 'drop-shadow(0 4px 18px rgba(0,0,0,0.06))' }}
                 >
-                  {/* Draw Regional Linkage Contour Guides */}
-                  <path
-                    d="M 230 60 L 250 160 L 280 240 L 300 380 L 270 520"
-                    fill="none"
-                    stroke="rgba(99, 102, 241, 0.2)"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                  />
-                  <path
-                    d="M 160 260 L 300 240 L 450 260 L 600 220"
-                    fill="none"
-                    stroke="rgba(99, 102, 241, 0.2)"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                  />
+                  <defs>
+                    <radialGradient id="oceanGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#f0f9ff" stopOpacity="0.8" />
+                      <stop offset="100%" stopColor="#e0f2fe" stopOpacity="0.2" />
+                    </radialGradient>
+                    <filter id="stateShadow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodOpacity="0.08" />
+                    </filter>
+                  </defs>
 
-                  {/* Render All Geospatial Nodes */}
-                  {INDIA_GEO_NODES.map((node) => {
+                  {/* Water & Ocean Geographic Typography */}
+                  <g className="select-none pointer-events-none">
+                    <text x="30" y="360" fontSize="8.5" fontWeight="900" fill="#94a3b8" letterSpacing="0.22em" opacity="0.65">
+                      ARABIAN SEA
+                    </text>
+                    <text x="270" y="350" fontSize="8.5" fontWeight="900" fill="#94a3b8" letterSpacing="0.22em" opacity="0.65">
+                      BAY OF BENGAL
+                    </text>
+                    <text x="145" y="495" fontSize="8" fontWeight="900" fill="#94a3b8" letterSpacing="0.22em" opacity="0.65">
+                      INDIAN OCEAN
+                    </text>
+                  </g>
+
+                  {/* Compass Rose */}
+                  <g transform="translate(36, 45)" className="select-none pointer-events-none">
+                    <circle cx="0" cy="0" r="16" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                    <path d="M 0 -13 L 3.5 0 L 0 -3 L -3.5 0 Z" fill="#4338ca" />
+                    <path d="M 0 13 L 3.5 0 L 0 3 L -3.5 0 Z" fill="#94a3b8" />
+                    <path d="M -13 0 L 0 3.5 L -3 0 L 0 -3.5 Z" fill="#94a3b8" />
+                    <path d="M 13 0 L 0 3.5 L 3 0 L 0 -3.5 Z" fill="#94a3b8" />
+                    <circle cx="0" cy="0" r="2" fill="#1e1b4b" />
+                    <text x="0" y="-17" textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#4338ca">N</text>
+                  </g>
+
+                  {/* Tropic of Cancer (23.5° N) */}
+                  <line x1="10" y1="235" x2="415" y2="235" stroke="#818cf8" strokeWidth="0.75" strokeDasharray="4 3" opacity="0.4" />
+                  <rect x="330" y="227" width="95" height="15" rx="7.5" fill="#ede9fe" />
+                  <text x="377" y="238" textAnchor="middle" fontSize="6.5" fontWeight="800" fill="#4338ca">
+                    Tropic of Cancer (23.5°N)
+                  </text>
+
+                  {/* Standard Meridian (82.5° E) */}
+                  <line x1="205" y1="28" x2="205" y2="430" stroke="#818cf8" strokeWidth="0.75" strokeDasharray="4 3" opacity="0.3" />
+                  <rect x="165" y="19" width="80" height="14" rx="7" fill="#ede9fe" />
+                  <text x="205" y="29" textAnchor="middle" fontSize="6" fontWeight="800" fill="#4338ca">
+                    82.5°E Standard Meridian
+                  </text>
+
+                  {/* Authentic Political State Paths */}
+                  {INDIA_REALISTIC_STATE_PATHS.map((node) => {
                     const data = stateByCodeMap.get(node.code);
                     const isSelected = selectedState.code === node.code;
                     const colors = getNodeColor(data, isSelected);
                     const count = data?.applicants || 0;
-                    const hasHighConcentration = count >= 4;
+                    const lx = node.centroid.x + (node.labelOffset?.x || 0);
+                    const ly = node.centroid.y + (node.labelOffset?.y || 0);
 
                     return (
                       <g
                         key={node.code}
                         onClick={() => setSelectedStateName(node.name)}
-                        className="cursor-pointer group"
+                        className="cursor-pointer group transition-all duration-200"
                       >
-                        {/* Pulsing Concentration Ripple for top active states */}
-                        {hasHighConcentration && !isSelected && (
-                          <rect
-                            x={node.x - 4}
-                            y={node.y - 4}
-                            width={node.w + 8}
-                            height={node.h + 8}
-                            rx={14}
-                            fill="none"
-                            stroke="#6366f1"
-                            strokeWidth="1.5"
-                            className="animate-ping opacity-25"
-                          />
-                        )}
-
-                        {/* Selected Outline Glow */}
-                        {isSelected && (
-                          <rect
-                            x={node.x - 3}
-                            y={node.y - 3}
-                            width={node.w + 6}
-                            height={node.h + 6}
-                            rx={14}
-                            fill="none"
-                            stroke="#f59e0b"
-                            strokeWidth="2.5"
-                            className="animate-pulse"
-                          />
-                        )}
-
-                        {/* Node Card Rectangle */}
-                        <rect
-                          x={node.x}
-                          y={node.y}
-                          width={node.w}
-                          height={node.h}
-                          rx={12}
+                        {/* State Polygon / Path */}
+                        <path
+                          d={node.path}
                           fill={colors.bg}
-                          stroke={isSelected ? '#f59e0b' : colors.stroke}
-                          strokeWidth={isSelected ? 2.5 : 1.2}
+                          stroke={isSelected ? '#d97706' : colors.stroke}
+                          strokeWidth={isSelected ? 2.2 : 0.75}
                           className="transition-all duration-200 group-hover:brightness-95"
-                          style={{ filter: count > 0 ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.08))' : 'none' }}
+                          filter={isSelected ? 'drop-shadow(0 3px 8px rgba(245,158,11,0.45))' : 'url(#stateShadow)'}
                         />
 
-                        {/* State Code */}
-                        <text
-                          x={node.x + 10}
-                          y={node.y + 18}
-                          fontSize="11"
-                          fontWeight="900"
-                          fontFamily="Inter, sans-serif"
-                          fill={colors.text}
-                          className="pointer-events-none"
-                        >
-                          {node.code}
-                        </text>
+                        {/* State Centroid Label Pill */}
+                        <g transform={`translate(${lx}, ${ly})`}>
+                          <rect
+                            x={-9}
+                            y={-6}
+                            width={18}
+                            height={12}
+                            rx={3}
+                            fill={isSelected ? '#f59e0b' : '#ffffff'}
+                            stroke={isSelected ? '#d97706' : '#cbd5e1'}
+                            strokeWidth={0.7}
+                            className="pointer-events-none shadow-xs"
+                            opacity={0.92}
+                          />
+                          <text
+                            x={0}
+                            y={2.8}
+                            textAnchor="middle"
+                            fontSize="6"
+                            fontWeight="900"
+                            fontFamily="Inter, sans-serif"
+                            fill={isSelected ? '#0f172a' : colors.text}
+                            className="pointer-events-none"
+                          >
+                            {node.code}
+                          </text>
 
-                        {/* State Name Short Label */}
-                        <text
-                          x={node.x + 10}
-                          y={node.y + 32}
-                          fontSize="8.5"
-                          fontWeight="700"
-                          fontFamily="Inter, sans-serif"
-                          fill={isSelected ? '#0f172a' : colors.subtext}
-                          className="pointer-events-none"
-                        >
-                          {node.name.length > 13 ? `${node.name.slice(0, 11)}..` : node.name}
-                        </text>
-
-                        {/* Applicant Concentration Badge Bubble */}
-                        <circle
-                          cx={node.x + node.w - 14}
-                          cy={node.y + 14}
-                          r={count > 0 ? (count >= 10 ? 11 : 9.5) : 7}
-                          fill={colors.bubbleBg}
-                          stroke={count === 0 ? '#cbd5e1' : 'none'}
-                          strokeWidth={count === 0 ? 1 : 0}
-                          className="transition-all"
-                        />
-                        <text
-                          x={node.x + node.w - 14}
-                          y={node.y + 17.5}
-                          textAnchor="middle"
-                          fontSize="8.5"
-                          fontWeight="900"
-                          fontFamily="Inter, sans-serif"
-                          fill={colors.bubbleText}
-                          className="pointer-events-none"
-                        >
-                          {count}
-                        </text>
+                          {/* Applicant Count Badge Bubble */}
+                          {count > 0 && (
+                            <g transform="translate(8, -5)">
+                              <circle
+                                cx={0}
+                                cy={0}
+                                r={count >= 10 ? 5.5 : 4.5}
+                                fill={colors.bubbleBg}
+                                stroke="#ffffff"
+                                strokeWidth={0.8}
+                                className="pointer-events-none shadow-xs"
+                              />
+                              <text
+                                x={0}
+                                y={1.8}
+                                textAnchor="middle"
+                                fontSize="5"
+                                fontWeight="900"
+                                fontFamily="Inter, sans-serif"
+                                fill={colors.bubbleText}
+                                className="pointer-events-none"
+                              >
+                                {count}
+                              </text>
+                            </g>
+                          )}
+                        </g>
                       </g>
                     );
                   })}

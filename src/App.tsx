@@ -37,6 +37,7 @@ import { FieldVerificationDesk } from './components/FieldVerificationDesk';
 import { TribalHeritageGallery } from './components/TribalHeritageGallery';
 import { ArohaMitraBot } from './components/ArohaMitraBot';
 import { useLanguage } from './context/LanguageContext';
+import { PortalLogo } from './components/PortalLogo';
 
 // Top 20 Add-On Visual Intelligence Features
 import { CommandCenter } from './components/CommandCenter'; // Feature 1
@@ -62,7 +63,8 @@ import { PresetUploadModal } from './components/PresetUploadModal';
 import { 
   BASELINE_APPLICATIONS, 
   evaluateAllWithPreset, 
-  PresetScenario 
+  PresetScenario,
+  COHORT_SOWMIKA_19_MARKSHEET
 } from './services/presetService';
 
 export default function App() {
@@ -753,12 +755,17 @@ export default function App() {
           {/* Top Quick Actions & Breadcrumb Bar */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm">
             <div className="flex items-center gap-2.5 text-xs flex-wrap">
-              <span className="font-black text-indigo-500 uppercase tracking-wider font-mono">PORTAL:</span>
-              <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black uppercase text-xs border border-emerald-300 shadow-xs">
-                {role}
-              </span>
+              <span className="font-black text-slate-400 uppercase tracking-wider font-mono text-[11px]">PORTAL:</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-2xl bg-slate-50 border border-slate-200/90 shadow-2xs">
+                <PortalLogo portal={role} size="xs" />
+                <span className="font-black text-slate-800 text-xs tracking-tight">
+                  {role === 'student' ? 'Scholar Portal' :
+                   role === 'officer' ? 'Scrutiny Portal' :
+                   role === 'admin' ? 'Admin Portal' : 'Supervisor Portal'}
+                </span>
+              </div>
               <span className="text-slate-300 font-bold">/</span>
-              <span className="font-black text-indigo-900 capitalize text-sm tracking-wide">
+              <span className="font-black text-indigo-900 capitalize text-sm tracking-wide bg-indigo-50/70 px-3 py-1 rounded-xl border border-indigo-100/80">
                 {activeTab.replace('_', ' ')}
               </span>
 
@@ -1119,7 +1126,17 @@ export default function App() {
         isOpen={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         onSelectScenario={(scenarioId) => {
-          if (scenarioId === 'scenario_clean_nfst') {
+          if (scenarioId === 'scenario_sowmika_19_marksheet') {
+            const sowmikaApp = applications.find(a => a.applicant.fullName.includes('Sowmika'));
+            if (!sowmikaApp) {
+              setApplications(prev => [...prev, ...COHORT_SOWMIKA_19_MARKSHEET]);
+              setSelectedAppId('app_sowmika_19');
+            } else {
+              setSelectedAppId(sowmikaApp.id);
+            }
+            setActiveTab('profile_360');
+            addToast('warning', 'Preset Loaded: Sowmika 19% Marksheet', 'Loaded Sowmika Helsiba with 19% marksheet document discrepancy. Inspect Field vs Doc Audit.');
+          } else if (scenarioId === 'scenario_clean_nfst') {
             setSelectedAppId('app_nfst_001');
             setActiveTab('profile_360');
           } else if (scenarioId === 'scenario_deficiency_nos') {

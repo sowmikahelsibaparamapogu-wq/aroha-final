@@ -263,15 +263,18 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
           'Status: Verified Authentic Official Document',
         ];
       } else if (docType === 'marksheet') {
+        const is19Percent = document?.extractedFields?.['Aggregate Percentage'] === '19%' || 
+                            document?.extractedFields?.['Percentage'] === '19%' || 
+                            document?.ocrConfidence === 19;
         sampleTitle = 'STATE BOARD OF HIGHER EDUCATION';
         sampleLines = [
           'STATEMENT OF MARKS / ACADEMIC CONSOLIDATED TRANSCRIPT',
           `Candidate Name: ${(applicantName || 'Sowmika Helsiba Paramapogu').toUpperCase()}`,
           `Father's Name: ${(fatherName || 'P. Rameshwar').toUpperCase()}`,
-          'Course: Master of Science (M.Sc)',
-          `Aggregate Percentage: ${qualifyingPercentage || 74.5}%`,
-          'Division: FIRST CLASS WITH DISTINCTION',
-          'Status: Verified Authentic Grade Card',
+          'Course: Master of Science (M.Sc in Biotechnology)',
+          `Aggregate Percentage: ${is19Percent ? '19.0%' : `${qualifyingPercentage || 74.5}%`}`,
+          `Division: ${is19Percent ? 'FAIL / BELOW STATUTORY CUTOFF (19%)' : 'FIRST CLASS WITH DISTINCTION'}`,
+          `Status: ${is19Percent ? 'CRITICAL DISCREPANCY: Fails Statutory 55.0% Minimum' : 'Verified Authentic Grade Card'}`,
         ];
       } else if (docType === 'income_certificate') {
         sampleTitle = 'GOVERNMENT REVENUE DEPARTMENT';

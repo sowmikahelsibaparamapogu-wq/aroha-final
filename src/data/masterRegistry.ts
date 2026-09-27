@@ -21,6 +21,26 @@ export interface MasterRecord {
 
 export const MASTER_REGISTRY_DATA: MasterRecord[] = [
   {
+    record_id: 101,
+    full_name: "Sowmika Helsiba Paramapogu",
+    date_of_birth: "1998-04-12",
+    fathers_name: "P. Rameshwar",
+    unique_id_number: "984801234589",
+    category_certificate_number: "TG/ST/2023/009182",
+    category_certificate_status: "active",
+    category: "ST",
+    income_certificate_amount: 340000,
+    income_certificate_issue_date: "2024-05-18",
+    domicile_state: "Telangana",
+    domicile_district: "Adilabad",
+    bank_account_number: "38192019482",
+    ifsc_code: "SBIN0020491",
+    aadhaar_seeding_status: "seeded",
+    record_status: "active",
+    last_updated: "2026-02-15",
+    test_scenario: "clean"
+  },
+  {
     record_id: 1,
     full_name: "Aryan Maharaj",
     date_of_birth: "2002-05-14",
