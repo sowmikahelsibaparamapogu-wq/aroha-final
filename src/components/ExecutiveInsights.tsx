@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Sparkles, 
   RefreshCw, 
@@ -11,7 +11,9 @@ import {
   ChevronRight,
   Filter,
   IndianRupee,
-  ShieldAlert
+  ShieldAlert,
+  Sliders,
+  Scale
 } from 'lucide-react';
 import { Application } from '../types/scholarship';
 
@@ -19,6 +21,14 @@ interface ExecutiveInsightsProps {
   applications: Application[];
   onSelectApplication?: (id: string) => void;
   onOpenPresetModal?: () => void;
+  activeCutoff?: number;
+  activeIncome?: number;
+  onUpdateParameters?: (params: {
+    incomeCeiling?: number;
+    marksThreshold?: number;
+    totalSlots?: number;
+    femaleQuota?: number;
+  }) => void;
 }
 
 interface InsightCard {
@@ -35,10 +45,42 @@ export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = ({
   applications,
   onSelectApplication,
   onOpenPresetModal,
+  activeCutoff = 55,
+  activeIncome = 800000,
+  onUpdateParameters,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedTime, setLastRefreshedTime] = useState<string>('Just now');
+  const [supervisorCutoff, setSupervisorCutoff] = useState<number>(activeCutoff);
+  const [supervisorIncome, setSupervisorIncome] = useState<number>(activeIncome);
+
+  useEffect(() => {
+    if (activeCutoff !== undefined) setSupervisorCutoff(activeCutoff);
+  }, [activeCutoff]);
+
+  useEffect(() => {
+    if (activeIncome !== undefined) setSupervisorIncome(activeIncome);
+  }, [activeIncome]);
+
+  const handleCutoffChange = (newVal: number) => {
+    setSupervisorCutoff(newVal);
+    onUpdateParameters?.({ marksThreshold: newVal, incomeCeiling: supervisorIncome });
+  };
+
+  const handleIncomeChange = (newVal: number) => {
+    setSupervisorIncome(newVal);
+    onUpdateParameters?.({ incomeCeiling: newVal, marksThreshold: supervisorCutoff });
+  };
+
+  // Live count of candidates meeting active cutoff
+  const cutoffStats = useMemo(() => {
+    const total = applications.length;
+    const meetingCutoff = applications.filter((a) => (a.academic?.qualifyingPercentage ?? 0) >= supervisorCutoff).length;
+    const belowCutoff = total - meetingCutoff;
+    const meetingPct = total > 0 ? ((meetingCutoff / total) * 100).toFixed(1) : '0.0';
+    return { total, meetingCutoff, belowCutoff, meetingPct };
+  }, [applications, supervisorCutoff]);
 
   // Compute live strategic insights strictly from current applications
   const dynamicInsights: InsightCard[] = useMemo(() => {
@@ -195,6 +237,121 @@ export const ExecutiveInsights: React.FC<ExecutiveInsightsProps> = ({
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{lastRefreshedTime}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Supervisor Statutory Cutoff & Policy Matrix */}
+      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl border border-emerald-500/30 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                Supervisor Statutory Cutoff Controller
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Live Parameter Tuning & Real-Time Re-evaluation
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-300">Live Cutoff Checking:</span>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold font-mono">
+              {cutoffStats.meetingCutoff} of {cutoffStats.total} ({cutoffStats.meetingPct}%) Pass
+            </span>
+          </div>
+        </div>
+
+        {/* Sliders & Preset Matrix */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          {/* Cutoff Slider */}
+          <div className="bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/15 space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-200">Statutory Qualifying Cutoff</span>
+              <span className="text-base font-bold text-amber-300 font-mono bg-amber-400/20 px-2.5 py-0.5 rounded-lg border border-amber-400/30">
+                {supervisorCutoff}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="45"
+              max="75"
+              step="1"
+              value={supervisorCutoff}
+              onChange={(e) => handleCutoffChange(parseInt(e.target.value, 10))}
+              className="w-full accent-amber-400 cursor-pointer h-2 bg-white/20 rounded-lg"
+            />
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+              <span>Relaxed: 45%</span>
+              <span>Statutory: 55%</span>
+              <span>Strict: 75%</span>
+            </div>
+
+            {/* Quick 1-Click Cutoff Adjusters */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-bold text-slate-300 mr-1">Presets:</span>
+              {[
+                { label: '48% (Low)', val: 48 },
+                { label: '50% (Affirmative)', val: 50 },
+                { label: '55% (MoTA Official)', val: 55 },
+                { label: '60% (Merit)', val: 60 },
+                { label: '65% (Strict)', val: 65 },
+                { label: '70% (High)', val: 70 },
+              ].map((b) => (
+                <button
+                  key={b.val}
+                  type="button"
+                  onClick={() => handleCutoffChange(b.val)}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                    supervisorCutoff === b.val
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-sm'
+                      : 'bg-white/15 text-slate-200 hover:bg-white/25'
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Income Ceiling Slider */}
+          <div className="bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/15 space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-200">Statutory Family Income Ceiling</span>
+              <span className="text-base font-bold text-emerald-300 font-mono bg-emerald-400/20 px-2.5 py-0.5 rounded-lg border border-emerald-400/30">
+                ₹{(supervisorIncome / 100000).toFixed(1)} Lakhs
+              </span>
+            </div>
+            <input
+              type="range"
+              min="300000"
+              max="1500000"
+              step="50000"
+              value={supervisorIncome}
+              onChange={(e) => handleIncomeChange(parseInt(e.target.value, 10))}
+              className="w-full accent-emerald-400 cursor-pointer h-2 bg-white/20 rounded-lg"
+            />
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+              <span>₹3 Lakhs</span>
+              <span>Baseline: ₹8 Lakhs</span>
+              <span>₹15 Lakhs</span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-slate-300 pt-2 border-t border-white/10">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Instant Re-evaluation across all dossiers</span>
+              </span>
+              {cutoffStats.belowCutoff > 0 && (
+                <span className="text-[11px] font-bold text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-md border border-rose-700/50">
+                  {cutoffStats.belowCutoff} candidate(s) below {supervisorCutoff}%
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -67,21 +67,28 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     return applications.filter((a) => a.scheme === selectedScheme);
   }, [applications, selectedScheme]);
 
-  // Dynamic Live KPIs
+  // Dynamic Live KPIs calculated strictly according to active cutoff and income parameters
   const stats = useMemo(() => {
     const total = filteredApps.length;
-    const eligible = filteredApps.filter(
-      (a) => a.aiAnalysis?.eligibilityPassed || a.status === 'approved' || a.status === 'merit_listed' || a.status === 'dbt_active'
-    ).length;
-    const pending = filteredApps.filter(
-      (a) => a.status === 'submitted' || a.status === 'in_scrutiny' || a.status === 'flagged_deficiency'
-    ).length;
+    const eligible = filteredApps.filter((a) => {
+      const marks = a.academic?.qualifyingPercentage ?? 0;
+      const income = a.applicant?.annualFamilyIncome ?? 0;
+      const meetsCutoff = marks >= quickCutoff;
+      const meetsIncome = !quickIncome || income <= quickIncome;
+      const notDeficient = a.status !== 'rejected' && a.status !== 'flagged_deficiency';
+      return meetsCutoff && meetsIncome && notDeficient;
+    }).length;
+
     const rejected = filteredApps.filter((a) => a.status === 'rejected').length;
+    const pending = total - eligible - rejected;
     const selected = filteredApps.filter(
-      (a) => a.status === 'merit_listed' || a.status === 'dbt_active' || a.status === 'approved'
+      (a) => (a.status === 'dbt_active' || a.status === 'merit_listed') && (a.academic?.qualifyingPercentage ?? 0) >= quickCutoff
     ).length;
     const highRisk = filteredApps.filter(
-      (a) => a.aiAnalysis?.riskScore === 'High' || (a.aiAnalysis?.flags && a.aiAnalysis.flags.length >= 2)
+      (a) =>
+        a.aiAnalysis?.riskScore === 'High' ||
+        (a.aiAnalysis?.flags && a.aiAnalysis.flags.length >= 2) ||
+        (a.academic?.qualifyingPercentage ?? 0) < quickCutoff
     ).length;
 
     const femaleCount = filteredApps.filter((a) => a.applicant?.gender === 'Female').length;
@@ -95,12 +102,12 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     const pvtgPercent = total > 0 ? ((pvtgCount / total) * 100).toFixed(1) : '0.0';
 
     const dbtCount = filteredApps.filter(
-      (a) => a.status === 'dbt_active' || a.status === 'approved' || a.status === 'merit_listed'
+      (a) => (a.status === 'dbt_active' || a.status === 'approved') && (a.academic?.qualifyingPercentage ?? 0) >= quickCutoff
     ).length;
     const dbtPercent = total > 0 ? ((dbtCount / total) * 100).toFixed(1) : '0.0';
 
-    return { total, eligible, pending, rejected, selected, highRisk, femalePercent, pvtgPercent, dbtPercent };
-  }, [filteredApps]);
+    return { total, eligible, pending: Math.max(0, pending), rejected, selected, highRisk, femalePercent, pvtgPercent, dbtPercent };
+  }, [filteredApps, quickCutoff, quickIncome]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -221,22 +228,22 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       )}
 
       {/* 4 Core Live KPI Tiles - 4 BOXES NOT IN LINE (2x2 GRID), BIG CARDS, SMALL FONT, LIGHT LOGOS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Box 1: Total Ingested Pool */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Total National Pool
             </span>
-            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/60 flex items-center justify-center opacity-60">
-              <Users className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-300 border border-slate-200/60 flex items-center justify-center opacity-40">
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              {stats.total.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Applicants</span>
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800">
+              {stats.total.toLocaleString()} <span className="text-xs font-semibold text-slate-400">Applicants</span>
             </div>
-            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+            <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1.5">
               {stats.total === 0 ? (
                 <span className="text-amber-600 font-semibold">Blank intake mode (Awaiting preset)</span>
               ) : (
@@ -250,20 +257,20 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         </div>
 
         {/* Box 2: Eligible Candidates */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Eligible Candidates
             </span>
-            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-emerald-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-300 border border-slate-200/60 flex items-center justify-center opacity-40">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-emerald-700">
-              {stats.eligible.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Cleared</span>
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-800">
+              {stats.eligible.toLocaleString()} <span className="text-xs font-semibold text-slate-400">Cleared</span>
             </div>
-            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+            <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
               <span>
                 {stats.total > 0
@@ -275,20 +282,20 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         </div>
 
         {/* Box 3: PFMS Direct Benefit Transfer Active */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               PFMS Direct Benefit Disbursal
             </span>
-            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-indigo-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
-              <Award className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-300 border border-slate-200/60 flex items-center justify-center opacity-40">
+              <Award className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-indigo-900">
-              {stats.selected.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Scholars Active</span>
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-indigo-900">
+              {stats.selected.toLocaleString()} <span className="text-xs font-semibold text-slate-400">Scholars Active</span>
             </div>
-            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+            <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />
               <span>100% verified DBT pipeline • ₹37,000/mo JRF sanction</span>
             </div>
@@ -296,20 +303,20 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         </div>
 
         {/* Box 4: Deficiencies & Review Queue */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Deficiencies & Scrutiny Action
             </span>
-            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-amber-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-slate-50 text-slate-300 border border-slate-200/60 flex items-center justify-center opacity-40">
+              <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-amber-700">
-              {(stats.pending + stats.rejected).toLocaleString()} <span className="text-sm font-semibold text-slate-500">Under Review</span>
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-amber-800">
+              {(stats.pending + stats.rejected).toLocaleString()} <span className="text-xs font-semibold text-slate-400">Under Review</span>
             </div>
-            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+            <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
               <span>{stats.pending} flagged with discrepancies / below cutoff, {stats.rejected} rejected</span>
             </div>

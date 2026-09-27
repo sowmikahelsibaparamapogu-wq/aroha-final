@@ -210,18 +210,23 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
       {/* Main Container - Big Inter Typography, White Big Box Portal Options, Zero Description */}
       <main className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center">
         
-        {/* Big Bold Title - No Description */}
-        <div className="text-center mb-8">
-          <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight text-white drop-shadow-2xl">
-            AROHA
-          </h1>
-          <div className="text-sm sm:text-base font-black tracking-widest text-emerald-200 uppercase mt-1 drop-shadow">
-            NATIONAL TRIBAL HIGHER EDUCATION ARCHITECTURE
+        {/* Soft Style aroha Title - Small Comparatively but Bold */}
+        <div className="text-center mb-7">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-emerald-100 text-[11px] font-bold tracking-wider uppercase mb-2.5">
+            <span>Ministry of Tribal Affairs</span>
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold font-sans tracking-wide text-white drop-shadow-md bg-white/15 backdrop-blur-md px-6 py-2 rounded-2xl border border-white/25 inline-block shadow-lg">
+              aroha
+            </h1>
+          </div>
+          <div className="text-xs sm:text-sm font-semibold tracking-wider text-emerald-100/90 uppercase mt-2 drop-shadow">
+            National Tribal Higher Education Portal
           </div>
         </div>
 
-        {/* 4 WHITE BIG BOX PORTAL OPTIONS (No description, big font, white boxes) */}
-        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5 mb-8">
+        {/* 4 BOXES NOT IN LINE (2x2 GRID), ALL 4 BIG CARDS, SMALL FONT, LIGHT LOGOS */}
+        <div className="w-full max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-8">
           {portals.map((portal) => {
             const Icon = portal.icon;
             const isSelected = selectedRole === portal.id;
@@ -230,26 +235,26 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
                 key={portal.id}
                 type="button"
                 onClick={() => handleRoleChange(portal.id as UserRole)}
-                className={`bg-white rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer shadow-2xl border-2 text-center group ${
+                className={`bg-white rounded-3xl p-6 sm:p-7 min-h-[155px] transition-all duration-300 flex flex-col items-center justify-center cursor-pointer shadow-xl border-2 text-center group ${
                   isSelected
-                    ? `${portal.activeRing} scale-105 shadow-emerald-950/40 -translate-y-1`
-                    : 'border-white/90 hover:scale-[1.02] hover:shadow-2xl opacity-95 hover:opacity-100'
+                    ? 'ring-4 ring-emerald-400 border-emerald-500 scale-102 shadow-emerald-950/30'
+                    : 'border-white/80 hover:border-white hover:scale-[1.01] hover:shadow-2xl opacity-95 hover:opacity-100'
                 }`}
               >
-                {/* Big Colorful Icon Box */}
+                {/* Light Subtle Logo */}
                 <div
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-3 shadow-lg transition-transform group-hover:scale-110 text-white ${portal.iconBg}`}
+                  className="w-11 h-11 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/70 flex items-center justify-center mb-3 opacity-60 group-hover:opacity-90 group-hover:scale-105 transition-all shadow-xs"
                 >
-                  <Icon className="w-8 h-8 sm:w-9 sm:h-9" />
+                  <Icon className="w-5 h-5" />
                 </div>
                 
-                {/* Big Font Title */}
-                <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-800">
+                {/* Small Font Title */}
+                <div className="text-sm sm:text-base font-bold tracking-tight text-slate-800">
                   {portal.title}
                 </div>
                 
-                {/* Clean Tag */}
-                <span className={`text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full mt-1.5 ${portal.tagBg}`}>
+                {/* Small Font Subtitle */}
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
                   {portal.subtitle}
                 </span>
               </button>

@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   ChevronDown
 } from 'lucide-react';
-import { Application, DocumentUpload, SchemeType } from '../types/scholarship';
+import { Application, DocumentUpload, SchemeType, SchemeRuleConfig } from '../types/scholarship';
 import { DocumentUploadCard } from './DocumentUploadCard';
 import { DEFAULT_SCHEME_RULES, evaluateApplication } from '../services/ruleEngine';
 import { matchAllDocumentsWithEnteredFields, DocumentFieldMatchResult } from '../services/fieldMatcher';
@@ -32,6 +32,8 @@ interface MultiStepFormProps {
   isOnline: boolean;
   onSubmitSuccess: (app: Application) => void;
   onToast: (type: 'success' | 'warning' | 'info', title: string, message: string) => void;
+  rules?: Record<SchemeType, SchemeRuleConfig>;
+  activeCutoff?: number;
 }
 
 const ST_COMMUNITIES = [
@@ -60,12 +62,18 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
   isOnline,
   onSubmitSuccess,
   onToast,
+  rules,
+  activeCutoff,
 }) => {
   const { lang, t } = useLanguage();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [scheme, setScheme] = useState<SchemeType>(initialScheme);
   const [saveStatus, setSaveStatus] = useState<string>('Ready');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+
+  // Active rule configuration based on supervisor / policy parameters
+  const activeSchemeRule = (rules && rules[scheme]) ? rules[scheme] : DEFAULT_SCHEME_RULES[scheme];
+  const statutoryCutoff = activeCutoff ?? activeSchemeRule.eligibility.minQualifyingPercentage;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -335,9 +343,32 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
   const hasAnyScanMismatchError = documentMatchResults.some((r) => r.hasErrors);
   const totalScanErrorsCount = documentMatchResults.reduce((acc, r) => acc + r.errorCount, 0);
 
-  const evaluation = evaluateApplication(partialApp, DEFAULT_SCHEME_RULES[scheme]);
+  const currentMarks = Number(formData.qualifyingPercentage) || 0;
+  const isBelowCutoff = !currentMarks || currentMarks < statutoryCutoff;
+
+  const evaluation = evaluateApplication(partialApp, activeSchemeRule);
+
+  // If candidate fails the statutory cutoff, they are strictly ineligible
+  if (isBelowCutoff) {
+    evaluation.passed = false;
+    evaluation.requiresHumanReview = true;
+    evaluation.overallConfidence = Math.min(evaluation.overallConfidence, 20);
+    if (!evaluation.flags.some(f => f.includes('cutoff'))) {
+      evaluation.flags.unshift(`Ineligible: Qualifying aggregate of ${currentMarks}% fails the statutory minimum cutoff of ${statutoryCutoff}%`);
+    }
+    evaluation.summary = `Ineligible for ${scheme}: Academic marks (${currentMarks}%) fail the active statutory cutoff (${statutoryCutoff}%). Candidate is statutorily prohibited from submitting an application.`;
+  }
 
   const handleSubmit = async () => {
+    if (isBelowCutoff) {
+      onToast(
+        'warning',
+        'Submission Blocked: Ineligible Candidate',
+        `Candidate scored ${currentMarks}%, which is below the active statutory cutoff of ${statutoryCutoff}%. Submission is strictly prohibited by MoTA statutory rules.`
+      );
+      return;
+    }
+
     const appNum = `${scheme}/2025/${Math.floor(1000 + Math.random() * 9000)}`;
     const now = new Date().toISOString();
 
@@ -711,6 +742,259 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
 
       setActiveSampleNotice('nos_variation');
       onToast('warning', 'Sample Loaded: NOS Name Discrepancy', 'Loaded Birsa Dev Munda with Oxford offer letter name discrepancy.');
+    } else if (presetType === 'ineligible_marks') {
+      setScheme('NFST');
+      setCurrentStep(5);
+      setFormData((prev) => ({
+        ...prev,
+        fullName: 'Ramesh Kumar Munda',
+        fatherName: 'Mangal Munda',
+        motherName: 'Jasmani Munda',
+        gender: 'Male',
+        dob: '2001-03-10',
+        aadhaarNumber: 'XXXX-XXXX-9142',
+        mobile: '+91 94311 88219',
+        email: 'ramesh.munda.ineligible@gmail.com',
+        stCommunity: 'Munda',
+        state: 'Jharkhand',
+        district: 'Ranchi',
+        pincode: '834001',
+        domicileState: 'Jharkhand',
+        annualFamilyIncome: '180000',
+        parentOccupation: 'Cultivator',
+        qualifyingDegree: 'Bachelor of Arts (Pass Course)',
+        qualifyingPercentage: '38.0',
+        passingYear: '2024',
+        institutionName: 'St. Xavier College, Ranchi',
+        targetProgram: 'Ph.D',
+        specialization: 'Tribal Regional History',
+        ugcNetRollNo: 'JH02008819',
+        ugcNetScore: '22.0',
+        ugcNetYear: '2024',
+        isJrfQualified: false,
+        bankName: 'State Bank of India',
+        accountNumber: '38192019482',
+        ifscCode: 'SBIN0000167',
+        branchName: 'Ranchi Main Branch',
+        isAadhaarSeeded: true,
+      }));
+
+      setDocuments([
+        {
+          id: `doc_inel_caste_${Date.now()}`,
+          type: 'caste_certificate',
+          name: 'ST_Certificate_Ramesh_Munda.pdf',
+          size: 980000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 95,
+          extractedFields: {
+            'Candidate Name': 'Ramesh Kumar Munda',
+            'Community': 'Munda (Scheduled Tribe)',
+            'Issuing Authority': 'Tahsildar, Ranchi',
+          },
+          mismatches: [],
+        },
+        {
+          id: `doc_inel_marks_${Date.now()}`,
+          type: 'marksheet',
+          name: 'BA_Consolidated_Marksheet_38pct.pdf',
+          size: 1120000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'mismatch',
+          ocrConfidence: 20,
+          mismatches: [
+            'Qualifying aggregate of 38.0% is below the mandatory MoTA 55.0% statutory cutoff.',
+            'Candidate prohibited from submitting scholarship application under MoTA statutory guidelines.',
+          ],
+          extractedFields: {
+            'Aggregate Percentage': '38.0%',
+            'Result': 'Third Division (Fails Cutoff)',
+          },
+        },
+      ]);
+
+      setActiveSampleNotice('ineligible_marks');
+      onToast(
+        'error',
+        'Ineligible Applicant Loaded (38.0% Marks)',
+        'Qualifying aggregate of 38.0% is below statutory cutoff (55.0%). Notice that the Submit Application button is strictly blocked.'
+      );
+    } else if (presetType === 'fraud_wrong_docs') {
+      setScheme('NFST');
+      setCurrentStep(5);
+      setFormData((prev) => ({
+        ...prev,
+        fullName: 'Deepak Verma',
+        fatherName: 'Surendra Verma',
+        motherName: 'Kamla Verma',
+        gender: 'Male',
+        dob: '1998-05-20',
+        aadhaarNumber: 'XXXX-XXXX-3829',
+        mobile: '+91 98210 49182',
+        email: 'deepak.verma.suspicious@gmail.com',
+        stCommunity: 'Gond',
+        state: 'Jharkhand',
+        district: 'Bokaro',
+        pincode: '827001',
+        domicileState: 'Jharkhand',
+        annualFamilyIncome: '1450000',
+        parentOccupation: 'Contractor',
+        qualifyingDegree: 'Bachelor of Technology (General)',
+        qualifyingPercentage: '42.0',
+        passingYear: '2022',
+        institutionName: 'Private Engineering Institute',
+        targetProgram: 'Ph.D',
+        specialization: 'Information Technology',
+        ugcNetRollNo: 'JH01009921',
+        ugcNetScore: '31.0',
+        ugcNetYear: '2023',
+        isJrfQualified: false,
+        bankName: 'State Bank of India',
+        accountNumber: '19201948192',
+        ifscCode: 'SBIN0000491',
+        branchName: 'Bokaro Steel City',
+        isAadhaarSeeded: false,
+      }));
+
+      setDocuments([
+        {
+          id: `doc_fraud_power_${Date.now()}`,
+          type: 'caste_certificate',
+          name: 'Electricity_Utility_Power_Bill.pdf',
+          size: 890000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'mismatch',
+          ocrConfidence: 15,
+          mismatches: [
+            'Wrong Document Slot: Uploaded file is an Electricity Consumer Bill, NOT a valid Scheduled Tribe Certificate.',
+            'Consumer Name records "SURENDRA VERMA" (Commercial LT Supply).',
+            'Community Mismatch: No tribal certification found.',
+          ],
+          extractedFields: {
+            'Document Type Detected': 'Utility Bill / Commercial Power Invoice',
+            'Consumer Account No': '1092837482',
+            'Amount Payable': 'Rs. 4,820.00',
+          },
+        },
+        {
+          id: `doc_fraud_income_${Date.now()}`,
+          type: 'income_certificate',
+          name: 'Private_Contractor_Salary_Slip.pdf',
+          size: 1040000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'mismatch',
+          ocrConfidence: 18,
+          mismatches: [
+            'Unauthorized Format: Uploaded document is a private pay-slip with an unverified revenue stamp.',
+            'Annual Family Income of ₹14,50,000 exceeds statutory MoTA income limit of ₹8,00,000.',
+          ],
+          extractedFields: {
+            'Annual Income Computed': '₹14,50,000',
+            'Issuing Authority': 'Self-Declared / Forged Tahsildar Stamp',
+          },
+        },
+      ]);
+
+      setActiveSampleNotice('fraud_wrong_docs');
+      onToast(
+        'warning',
+        'Sample Loaded: Wrong & Fraudulent Documents',
+        'Commercial power bill uploaded in caste certificate slot. Overall confidence drastically reduced to 18%.'
+      );
+    } else if (presetType === 'perfect_100') {
+      setScheme('NFST');
+      setCurrentStep(5);
+      setFormData((prev) => ({
+        ...prev,
+        fullName: 'Ananya Soren',
+        fatherName: 'Prakash Soren',
+        motherName: 'Sunita Soren',
+        gender: 'Female',
+        dob: '1998-04-12',
+        aadhaarNumber: 'XXXX-XXXX-8921',
+        mobile: '+91 94311 55678',
+        email: 'ananya.soren@jnu.ac.in',
+        stCommunity: 'Santhal',
+        state: 'Jharkhand',
+        district: 'Dumka',
+        pincode: '814101',
+        domicileState: 'Jharkhand',
+        annualFamilyIncome: '220000',
+        parentOccupation: 'Primary School Teacher & Agriculture',
+        qualifyingDegree: 'M.Sc. in Biotechnology',
+        qualifyingPercentage: '88.5',
+        passingYear: '2024',
+        institutionName: 'Jawaharlal Nehru University (JNU), New Delhi',
+        targetProgram: 'Ph.D',
+        specialization: 'Indigenous Medicinal Plant Genetics',
+        researchTopic: 'Molecular characterization of bioactive flavonoids in Santhal tribal herbal remedies',
+        guideName: 'Prof. Ramesh Chandra Soren, FNASc',
+        ugcNetRollNo: 'JH04001923',
+        ugcNetScore: '99.2',
+        ugcNetYear: '2024',
+        isJrfQualified: true,
+        bankName: 'State Bank of India',
+        accountNumber: '39201940192',
+        ifscCode: 'SBIN0000072',
+        branchName: 'Dumka Main Branch',
+        isAadhaarSeeded: true,
+      }));
+
+      setDocuments([
+        {
+          id: `doc_100_caste_${Date.now()}`,
+          type: 'caste_certificate',
+          name: 'Santhal_ST_Certificate_Official.pdf',
+          size: 1450000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 100,
+          extractedFields: {
+            'Candidate Name': 'Ananya Soren',
+            'Father Name': 'Prakash Soren',
+            'Tribe / Category': 'Santhal (Scheduled Tribe)',
+            'Issuing Authority': 'Sub-Divisional Officer (Civil), Dumka',
+          },
+          mismatches: [],
+        },
+        {
+          id: `doc_100_marks_${Date.now()}`,
+          type: 'marksheet',
+          name: 'MSc_Biotech_Transcript_JNU.pdf',
+          size: 2100000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 100,
+          extractedFields: {
+            'Candidate Name': 'Ananya Soren',
+            'Aggregate Percentage': '88.5%',
+            'Degree Awarded': 'Master of Science with Distinction',
+          },
+          mismatches: [],
+        },
+        {
+          id: `doc_100_bonafide_${Date.now()}`,
+          type: 'bonafide_certificate',
+          name: 'UGC_NET_JRF_Award_Letter.pdf',
+          size: 1200000,
+          uploadedAt: new Date().toISOString(),
+          ocrStatus: 'verified',
+          ocrConfidence: 100,
+          extractedFields: {
+            'Fellowship Award': 'Junior Research Fellowship (JRF)',
+            'Percentile Score': '99.2',
+          },
+          mismatches: [],
+        },
+      ]);
+
+      setActiveSampleNotice(null);
+      onToast(
+        'success',
+        '100% Verified Sample Loaded',
+        'Loaded Ananya Soren with 100% verified matching documents and 88.5% qualifying marks.'
+      );
     }
   };
 
@@ -756,17 +1040,50 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           </h2>
         </div>
 
-        {/* Scheme Switcher & Preset Button */}
+        {/* Scheme Switcher & Preset Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Quick 1-Click Button for Ineligible Candidate */}
+          <button
+            type="button"
+            onClick={() => loadSamplePreset('ineligible_marks')}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-900 bg-rose-100/90 hover:bg-rose-200 border border-rose-300 rounded-xl transition cursor-pointer shadow-xs"
+            title="Load ineligible candidate with 38% marks (fails statutory cutoff, submission blocked)"
+          >
+            <AlertCircle className="w-3.5 h-3.5 text-rose-700" />
+            <span>🚫 Ineligible (38% Marks)</span>
+          </button>
+
+          {/* Quick 1-Click Button for Wrong Docs */}
+          <button
+            type="button"
+            onClick={() => loadSamplePreset('fraud_wrong_docs')}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 rounded-xl transition cursor-pointer shadow-xs"
+            title="Load candidate with commercial electricity bill uploaded in caste slot (18% confidence)"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+            <span>⚠️ Wrong Docs (18%)</span>
+          </button>
+
+          {/* Quick 1-Click Button for 100% Clean */}
+          <button
+            type="button"
+            onClick={() => loadSamplePreset('perfect_100')}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-900 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition cursor-pointer shadow-xs"
+            title="Load 100% verified application with 88.5% marks and pristine documents"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>✅ 100% Clean</span>
+          </button>
+
           {/* Quick 1-Click Button for Name Mismatch Scenario */}
           <button
             type="button"
             onClick={() => loadSamplePreset('mismatch')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 rounded-xl transition cursor-pointer shadow-xs"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition cursor-pointer shadow-xs"
             title="Load dataset with deliberate name mismatch between application and ST certificate"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-            <span>{t('loadMismatchBtn')}</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-slate-600" />
+            <span>Name Mismatch</span>
           </button>
 
           {/* Sample Data Dropdown */}
@@ -1772,6 +2089,26 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
             </div>
           </div>
         )}
+
+        {/* Statutory Ineligibility Notice (When Marks are below Cutoff) */}
+        {isBelowCutoff && (
+          <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex items-start gap-3.5 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wider text-rose-900">
+                Statutory Ineligibility: Submission Prohibited
+              </div>
+              <p className="text-xs text-rose-900 mt-1 leading-relaxed">
+                Candidate's qualifying aggregate of <span className="font-black text-rose-950 underline">{currentMarks}%</span> fails the mandatory MoTA statutory minimum cutoff of <span className="font-black text-rose-950">{statutoryCutoff}%</span>. Under official Ministry of Tribal Affairs guidelines, candidates with marks below the statutory cutoff are strictly prohibited from submitting scholarship applications.
+              </p>
+              <div className="mt-2 text-[11px] font-bold text-rose-800 bg-rose-100 px-2.5 py-1 rounded-lg inline-block">
+                Deficit: -{(statutoryCutoff - currentMarks).toFixed(1)}% below required statutory benchmark
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation Controls */}
@@ -1800,10 +2137,25 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg transition cursor-pointer relative z-30 focus:ring-4 focus:ring-emerald-300"
+            disabled={isBelowCutoff}
+            className={`flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md transition relative z-30 ${
+              isBelowCutoff
+                ? 'bg-rose-600/90 text-white cursor-not-allowed opacity-90'
+                : 'text-white bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg cursor-pointer focus:ring-4 focus:ring-emerald-300'
+            }`}
+            title={isBelowCutoff ? `Submission prohibited: ${currentMarks}% fails cutoff of ${statutoryCutoff}%` : 'Submit application'}
           >
-            <Send className="w-4 h-4" />
-            <span>{!isOnline ? t('saveDraft') : t('submitApp')}</span>
+            {isBelowCutoff ? (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                <span>Submission Prohibited (Marks Below Cutoff)</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                <span>{!isOnline ? t('saveDraft') : t('submitApp')}</span>
+              </>
+            )}
           </button>
         )}
       </div>

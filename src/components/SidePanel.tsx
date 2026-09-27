@@ -160,10 +160,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 अ
               </div>
               <div>
-                <div className="text-xs font-bold text-white/95 tracking-wide leading-tight font-sans">
-                  AROHA MoTA
+                <div className="text-xs font-bold text-white tracking-wide leading-tight font-sans bg-red-900/60 px-2 py-0.5 rounded-lg border border-red-700/50 inline-block shadow-2xs">
+                  aroha MoTA
                 </div>
-                <div className="text-[10px] text-red-200/80 font-bold uppercase tracking-wider font-sans">
+                <div className="text-[10px] text-red-200/80 font-semibold uppercase tracking-wider font-sans mt-0.5">
                   National Portal
                 </div>
               </div>

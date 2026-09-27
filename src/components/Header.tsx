@@ -118,8 +118,8 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-bold tracking-wide text-emerald-950 font-sans">
-                {t('portalName')}
+              <h1 className="text-sm font-bold tracking-wide text-emerald-900 font-sans bg-emerald-50/80 px-2.5 py-0.5 rounded-lg border border-emerald-200/70 inline-block shadow-2xs">
+                aroha
               </h1>
               <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
                 {t('versionBadge')}
