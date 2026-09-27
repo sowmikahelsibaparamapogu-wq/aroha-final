@@ -14,6 +14,7 @@ import { Application } from '../types/scholarship';
 
 interface NoCodeRuleBuilderProps {
   applications: Application[];
+  onApplyRulePolicy?: (params: { marksThreshold?: number; incomeCeiling?: number }) => void;
 }
 
 interface RuleCondition {
@@ -23,17 +24,36 @@ interface RuleCondition {
   value: string;
 }
 
-export const NoCodeRuleBuilder: React.FC<NoCodeRuleBuilderProps> = ({ applications }) => {
+export const NoCodeRuleBuilder: React.FC<NoCodeRuleBuilderProps> = ({ applications, onApplyRulePolicy }) => {
   const [ruleName, setRuleName] = useState('Special Affirmative Action Rule (PVTG / High Distinction)');
   const [operatorCombiner, setOperatorCombiner] = useState<'AND' | 'OR'>('AND');
   const [conditions, setConditions] = useState<RuleCondition[]>([
     { id: 'cond_1', field: 'qualifyingPercentage', operator: '>=', value: '60' },
     { id: 'cond_2', field: 'annualFamilyIncome', operator: '<=', value: '600000' },
   ]);
-  const [testResult, setTestResult] = useState<{ evaluated: boolean; matchedCount: number }>({
+  const [testResult, setTestResult] = useState<{ evaluated: boolean; matchedCount: number; deployed?: boolean }>({
     evaluated: false,
     matchedCount: 0,
+    deployed: false,
   });
+
+  const handleDeployToEngine = () => {
+    if (!onApplyRulePolicy) return;
+    const marksCond = conditions.find((c) => c.field === 'qualifyingPercentage');
+    const incomeCond = conditions.find((c) => c.field === 'annualFamilyIncome');
+    const marks = marksCond ? parseFloat(marksCond.value) : undefined;
+    const income = incomeCond ? parseFloat(incomeCond.value) : undefined;
+    
+    onApplyRulePolicy({
+      marksThreshold: marks && !isNaN(marks) ? marks : undefined,
+      incomeCeiling: income && !isNaN(income) ? income : undefined,
+    });
+
+    setTestResult((prev) => ({ ...prev, deployed: true }));
+    setTimeout(() => {
+      setTestResult((prev) => ({ ...prev, deployed: false }));
+    }, 4000);
+  };
 
   // Add condition block
   const handleAddCondition = () => {
@@ -113,14 +133,27 @@ export const NoCodeRuleBuilder: React.FC<NoCodeRuleBuilderProps> = ({ applicatio
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={handleEvaluate}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition cursor-pointer"
-        >
-          <Play className="w-3.5 h-3.5 fill-white" />
-          <span>Execute Live Test Simulation</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleEvaluate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-white" />
+            <span>Simulate Match</span>
+          </button>
+          {onApplyRulePolicy && (
+            <button
+              type="button"
+              onClick={handleDeployToEngine}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white text-xs font-black shadow-md transition cursor-pointer"
+              title="Apply these cutoff & income rules to all applicant dossiers across national portal"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Deploy Policy to National Portal</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Rule Definition Form */}

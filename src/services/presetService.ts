@@ -1421,29 +1421,52 @@ export function evaluateAllWithPreset(
     const schemeRule = updatedRules[app.scheme || 'NFST'];
     const evalResult = evaluateApplication(app, schemeRule);
 
+    const applicantMarks = app.academic?.qualifyingPercentage ?? 0;
+    const minMarks = schemeRule.eligibility.minQualifyingPercentage;
+    const failsCutoff = applicantMarks < minMarks;
+
     let status = app.status;
-    if (app.id === 'app_nfst_001' || app.status === 'dbt_active') {
-      status = 'dbt_active';
-    } else if (app.id === 'app_nos_002' || app.status === 'merit_listed') {
-      status = 'merit_listed';
-    } else if (app.status === 'approved') {
-      status = 'approved';
-    } else if (evalResult.passed) {
-      status = status === 'submitted' ? 'in_scrutiny' : status;
-    } else {
+    let deficiencies = [...(app.deficiencies || [])];
+
+    if (!evalResult.passed || failsCutoff) {
       status = 'flagged_deficiency';
+      if (failsCutoff && !deficiencies.some(d => d.field === 'qualifyingPercentage')) {
+        deficiencies.push({
+          id: `def_cutoff_${Date.now()}_${app.id}`,
+          field: 'qualifyingPercentage',
+          title: 'Qualifying Score Below Scheme Cutoff',
+          description: `Candidate scored ${applicantMarks}%, which is below the active ${app.scheme} statutory cutoff of ${minMarks}%.`,
+          severity: 'critical',
+          issuedAt: new Date().toISOString(),
+          isResolved: false,
+        });
+      }
+    } else {
+      deficiencies = deficiencies.filter(d => d.field !== 'qualifyingPercentage');
+      if (app.id === 'app_nfst_001' || app.status === 'dbt_active') {
+        status = 'dbt_active';
+      } else if (app.id === 'app_nos_002' || app.status === 'merit_listed') {
+        status = 'merit_listed';
+      } else if (app.status === 'approved') {
+        status = 'approved';
+      } else {
+        status = status === 'submitted' ? 'in_scrutiny' : status;
+      }
     }
 
     return {
       ...app,
       status,
+      deficiencies,
       aiAnalysis: {
         ...app.aiAnalysis,
-        eligibilityPassed: evalResult.passed,
-        flags: evalResult.flags,
-        riskScore: evalResult.riskScore,
+        eligibilityPassed: evalResult.passed && !failsCutoff,
+        flags: failsCutoff 
+          ? [`Qualifying percentage (${applicantMarks}%) is below cutoff of ${minMarks}%`, ...evalResult.flags.filter(f => !f.includes('threshold'))]
+          : evalResult.flags,
+        riskScore: failsCutoff ? 'High' : evalResult.riskScore,
         meritScore: evalResult.meritScore,
-        overallConfidence: evalResult.overallConfidence,
+        overallConfidence: failsCutoff ? Math.min(evalResult.overallConfidence, 45) : evalResult.overallConfidence,
       },
       updatedAt: new Date().toISOString(),
     };

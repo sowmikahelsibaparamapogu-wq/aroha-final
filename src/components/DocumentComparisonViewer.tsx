@@ -509,7 +509,7 @@ export const DocumentComparisonViewer: React.FC<DocumentComparisonViewerProps> =
                     <span>AI OCR Extracted Entities</span>
                     <span className="text-emerald-400 font-mono">{doc.confidence}% Confidence</span>
                   </div>
-                  {Object.entries(doc.extractedFields).slice(0, 3).map(([key, val]) => (
+                  {Object.entries(doc?.extractedFields || {}).slice(0, 3).map(([key, val]) => (
                     <div key={key} className="flex items-center justify-between text-slate-300">
                       <span className="text-slate-400">{key}:</span>
                       <strong className="text-white truncate max-w-[140px]">{String(val)}</strong>
@@ -702,10 +702,10 @@ export const DocumentComparisonViewer: React.FC<DocumentComparisonViewerProps> =
                   <td className="p-3 font-bold text-slate-900">Candidate Full Name</td>
                   <td className="p-3 font-bold text-indigo-900">{currentStudent.applicant?.fullName}</td>
                   {candidateDocs.map((d) => {
-                    const extracted = d.extractedFields['Candidate Name'] || d.extractedFields['Full Name'] || 'N/A';
-                    const isMismatch = String(extracted).toLowerCase() !== String(currentStudent.applicant?.fullName).toLowerCase();
+                    const extracted = d?.extractedFields?.['Candidate Name'] || d?.extractedFields?.['Full Name'] || 'N/A';
+                    const isMismatch = String(extracted).toLowerCase() !== String(currentStudent?.applicant?.fullName || '').toLowerCase();
                     return (
-                      <td key={d.id} className={`p-3 font-mono ${isMismatch ? 'text-rose-700 font-bold bg-rose-50' : 'text-emerald-800'}`}>
+                      <td key={d?.id || Math.random()} className={`p-3 font-mono ${isMismatch ? 'text-rose-700 font-bold bg-rose-50' : 'text-emerald-800'}`}>
                         {String(extracted)}
                       </td>
                     );
@@ -719,11 +719,11 @@ export const DocumentComparisonViewer: React.FC<DocumentComparisonViewerProps> =
 
                 <tr>
                   <td className="p-3 font-bold text-slate-900">Father's / Guardian's Name</td>
-                  <td className="p-3 font-bold text-indigo-900">{currentStudent.applicant?.fatherName || 'P. Rameshwar'}</td>
+                  <td className="p-3 font-bold text-indigo-900">{currentStudent?.applicant?.fatherName || 'P. Rameshwar'}</td>
                   {candidateDocs.map((d) => {
-                    const extracted = d.extractedFields["Father's Name"] || 'N/A';
+                    const extracted = d?.extractedFields?.["Father's Name"] || 'N/A';
                     return (
-                      <td key={d.id} className="p-3 font-mono text-emerald-800">
+                      <td key={d?.id || Math.random()} className="p-3 font-mono text-emerald-800">
                         {String(extracted)}
                       </td>
                     );
@@ -737,11 +737,11 @@ export const DocumentComparisonViewer: React.FC<DocumentComparisonViewerProps> =
 
                 <tr>
                   <td className="p-3 font-bold text-slate-900">ST Community / Tribe</td>
-                  <td className="p-3 font-bold text-indigo-900">{currentStudent.applicant?.stCommunity}</td>
+                  <td className="p-3 font-bold text-indigo-900">{currentStudent?.applicant?.stCommunity || 'Scheduled Tribe'}</td>
                   {candidateDocs.map((d) => {
-                    const extracted = d.extractedFields['Community / Caste'] || 'N/A';
+                    const extracted = d?.extractedFields?.['Community / Caste'] || 'N/A';
                     return (
-                      <td key={d.id} className="p-3 font-mono text-emerald-800">
+                      <td key={d?.id || Math.random()} className="p-3 font-mono text-emerald-800">
                         {String(extracted)}
                       </td>
                     );
@@ -755,11 +755,11 @@ export const DocumentComparisonViewer: React.FC<DocumentComparisonViewerProps> =
 
                 <tr>
                   <td className="p-3 font-bold text-slate-900">Domicile State / District</td>
-                  <td className="p-3 font-bold text-indigo-900">{currentStudent.applicant?.district}, {currentStudent.applicant?.state}</td>
+                  <td className="p-3 font-bold text-indigo-900">{currentStudent?.applicant?.district || 'District'}, {currentStudent?.applicant?.state || 'State'}</td>
                   {candidateDocs.map((d) => {
-                    const extracted = d.extractedFields['Issuing Authority'] || d.extractedFields['State'] || 'N/A';
+                    const extracted = d?.extractedFields?.['Issuing Authority'] || d?.extractedFields?.['State'] || 'N/A';
                     return (
-                      <td key={d.id} className="p-3 font-mono text-emerald-800 truncate max-w-[120px]">
+                      <td key={d?.id || Math.random()} className="p-3 font-mono text-emerald-800 truncate max-w-[120px]">
                         {String(extracted)}
                       </td>
                     );

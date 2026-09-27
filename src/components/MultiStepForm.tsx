@@ -730,14 +730,14 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
   const casteDoc = documents.find((d) => d.type === 'caste_certificate');
   const hasNameMismatchInDoc = Boolean(
     casteDoc?.ocrStatus === 'mismatch' &&
-    (casteDoc.extractedFields?.['Applicant Name in Document'] ||
+    (casteDoc?.extractedFields?.['Applicant Name in Document'] ||
       casteDoc.mismatches?.some((m) => m.toLowerCase().includes('name') || m.toLowerCase().includes('lapang')))
   );
   const mismatchedDocName =
     (casteDoc?.extractedFields?.['Applicant Name in Document'] as string) || 'Jemimah Lapang';
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 max-w-4xl mx-auto">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 max-w-4xl mx-auto mb-28">
       {/* Form Top Bar: Scheme Selector + Offline Autosave Notice */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div>
@@ -1775,12 +1775,12 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
       </div>
 
       {/* Navigation Controls */}
-      <div className="flex items-center justify-between pt-8 mt-6 border-t border-slate-100">
+      <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-200 pb-16 relative z-30">
         <button
           type="button"
           onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
           disabled={currentStep === 1}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>{t('prevStep')}</span>
@@ -1788,9 +1788,10 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
 
         {currentStep < 5 ? (
           <button
+            id="multi-step-form-next-step-btn"
             type="button"
             onClick={() => setCurrentStep((prev) => Math.min(5, prev + 1))}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition cursor-pointer relative z-30 focus:ring-4 focus:ring-blue-300"
           >
             <span>{t('nextStep')}</span>
             <ChevronRight className="w-4 h-4" />
@@ -1799,7 +1800,7 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition cursor-pointer"
+            className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg transition cursor-pointer relative z-30 focus:ring-4 focus:ring-emerald-300"
           >
             <Send className="w-4 h-4" />
             <span>{!isOnline ? t('saveDraft') : t('submitApp')}</span>

@@ -18,7 +18,7 @@ import {
   Maximize2,
   FileCheck
 } from 'lucide-react';
-import { Application, DocumentUpload, DeficiencyNotice } from '../types/scholarship';
+import { Application, DocumentUpload, DeficiencyNotice, SchemeRuleConfig, SchemeType } from '../types/scholarship';
 import { useLanguage } from '../context/LanguageContext';
 import { STATUTORY_REJECTION_CLAUSES } from './RejectionDesk';
 import { MeticulousVerificationView } from './MeticulousVerificationView';
@@ -27,6 +27,7 @@ import { matchEnteredFieldsWithDocument, DocumentFieldMatchResult } from '../ser
 
 interface ScrutinyModalProps {
   application: Application | null;
+  rules?: Record<SchemeType, SchemeRuleConfig>;
   onClose: () => void;
   onApprove: (appId: string, remarks: string) => void;
   onIssueDeficiency: (appId: string, notice: DeficiencyNotice) => void;
@@ -35,6 +36,7 @@ interface ScrutinyModalProps {
 
 export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
   application,
+  rules,
   onClose,
   onApprove,
   onIssueDeficiency,
@@ -330,25 +332,25 @@ export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">Candidate Name:</span>
                             <span className="font-bold text-slate-900 font-mono truncate block">
-                              {currentDoc.extractedFields?.['Candidate Name'] || currentDoc.extractedFields?.['Applicant Name in Document'] || application.applicant.fullName}
+                              {currentDoc?.extractedFields?.['Candidate Name'] || currentDoc?.extractedFields?.['Applicant Name in Document'] || application?.applicant?.fullName || 'Candidate'}
                             </span>
                           </div>
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">Issuing Authority:</span>
                             <span className="font-semibold text-slate-800 truncate block">
-                              {currentDoc.extractedFields?.['Issuing Authority'] || 'Competent Authority'}
+                              {currentDoc?.extractedFields?.['Issuing Authority'] || 'Competent Authority'}
                             </span>
                           </div>
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">Certificate / Ref ID:</span>
                             <span className="font-mono text-slate-800 truncate block">
-                              {currentDoc.extractedFields?.['Certificate Number'] || currentDoc.extractedFields?.['Roll / Registration No'] || currentDoc.id.slice(0, 14)}
+                              {currentDoc?.extractedFields?.['Certificate Number'] || currentDoc?.extractedFields?.['Roll / Registration No'] || currentDoc?.id?.slice(0, 14) || 'N/A'}
                             </span>
                           </div>
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">Upload Date:</span>
                             <span className="text-slate-700">
-                              {new Date(currentDoc.uploadedAt).toLocaleDateString('en-IN')}
+                              {currentDoc?.uploadedAt ? new Date(currentDoc.uploadedAt).toLocaleDateString('en-IN') : 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -357,7 +359,7 @@ export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
                         <div className="pt-1">
                           <button
                             type="button"
-                            onClick={() => setPreviewingDoc(currentDoc)}
+                            onClick={() => currentDoc && setPreviewingDoc(currentDoc)}
                             className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold transition shadow-xs cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -375,7 +377,7 @@ export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
                     {t('extractedOcrEntities', 'Extracted OCR Entities:')}
                   </span>
                   <div className="bg-white rounded-lg border border-slate-200 p-3 space-y-2 text-[11px]">
-                    {Object.entries(currentDoc.extractedFields || {}).map(([k, v]) => (
+                    {Object.entries(currentDoc?.extractedFields || {}).map(([k, v]) => (
                       <div key={k} className="flex justify-between items-start gap-2 border-b border-slate-100 pb-1 last:border-0 last:pb-0">
                         <span className="text-slate-400 font-medium">{k}:</span>
                         <span className="text-slate-900 font-semibold text-right">{String(v)}</span>
@@ -385,7 +387,7 @@ export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
                 </div>
 
                 {/* Mismatch Alert if Present */}
-                {currentDoc.mismatches && currentDoc.mismatches.length > 0 && (
+                {currentDoc?.mismatches && currentDoc.mismatches.length > 0 && (
                   <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 text-xs text-orange-950">
                     <div className="font-bold flex items-center gap-1.5 text-orange-700 mb-1">
                       <AlertTriangle className="w-4 h-4 text-orange-600" />
@@ -525,19 +527,26 @@ export const ScrutinyModal: React.FC<ScrutinyModalProps> = ({
               </div>
 
               {/* Check 2: Academic Cutoff */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">{t('academicMarksMin', 'Academic Minimum Marks')}</span>
-                  {application.academic.qualifyingPercentage >= 55 ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-rose-600" />
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Candidate scored {application.academic.qualifyingPercentage}% (Cutoff: 55.0% for ST).
-                </p>
-              </div>
+              {(() => {
+                const minMarks = rules?.[application.scheme]?.eligibility?.minQualifyingPercentage ?? 55.0;
+                const isPassing = application.academic.qualifyingPercentage >= minMarks;
+                return (
+                  <div className={`p-3 rounded-xl border ${isPassing ? 'bg-slate-50 border-slate-200' : 'bg-rose-50 border-rose-300 text-rose-950'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold">{t('academicMarksMin', 'Academic Minimum Marks')}</span>
+                      {isPassing ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-rose-600" />
+                      )}
+                    </div>
+                    <p className={`text-[11px] mt-1 ${isPassing ? 'text-slate-500' : 'text-rose-800 font-semibold'}`}>
+                      Candidate scored {application.academic.qualifyingPercentage}% (Active {application.scheme} Cutoff: {minMarks}%).
+                      {!isPassing && ' ⚠️ Below statutory cutoff threshold!'}
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Check 3: Scheme Specifics */}
               {application.scheme === 'NOS' ? (

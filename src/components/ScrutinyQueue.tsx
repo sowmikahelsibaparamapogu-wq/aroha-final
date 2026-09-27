@@ -231,8 +231,9 @@ export const ScrutinyQueue: React.FC<ScrutinyQueueProps> = ({
                 </tr>
               ) : (
                 filteredApps.map((app) => {
-                const confidence = app.aiAnalysis?.overallConfidence || 85;
-                const requiresReview = app.aiAnalysis?.requiresHumanReview;
+                const confidence = app.aiAnalysis?.overallConfidence !== undefined ? app.aiAnalysis.overallConfidence : 80;
+                const requiresReview = app.aiAnalysis?.requiresHumanReview || app.aiAnalysis?.eligibilityPassed === false;
+                const isFailingEligibility = app.aiAnalysis?.eligibilityPassed === false;
                 const hasDeficiency = app.status === 'flagged_deficiency';
 
                 return (
@@ -325,7 +326,21 @@ export const ScrutinyQueue: React.FC<ScrutinyQueueProps> = ({
 
                     {/* Rule Evaluation */}
                     <td className="py-3.5 px-5">
-                      {requiresReview || hasDeficiency ? (
+                      {isFailingEligibility ? (
+                        <div className="flex items-start gap-1.5 text-rose-700 font-bold text-[11px]">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded text-[10px] font-black uppercase">
+                              Ineligible ({app.academic?.qualifyingPercentage || 0}%)
+                            </span>
+                            {app.aiAnalysis?.flags && app.aiAnalysis.flags.length > 0 && (
+                              <p className="text-[10px] text-rose-800 font-semibold truncate max-w-[220px] mt-0.5">
+                                {app.aiAnalysis.flags[0]}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : requiresReview || hasDeficiency ? (
                         <div className="flex items-start gap-1.5 text-orange-700 font-semibold text-[11px]">
                           <AlertTriangle className="w-3.5 h-3.5 text-orange-500 flex-shrink-0 mt-0.5" />
                           <div>
@@ -347,7 +362,12 @@ export const ScrutinyQueue: React.FC<ScrutinyQueueProps> = ({
 
                     {/* Status Pill */}
                     <td className="py-3.5 px-5">
-                      {app.status === 'rejected' ? (
+                      {isFailingEligibility ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-300 text-[11px] font-extrabold">
+                          <XCircle className="w-3 h-3 text-rose-600" />
+                          <span>Below Cutoff</span>
+                        </span>
+                      ) : app.status === 'rejected' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">
                           <XCircle className="w-3 h-3 text-rose-600" />
                           <span>Statutory Rejected</span>

@@ -27,10 +27,14 @@ import {
   Wifi,
   WifiOff,
   Palette,
-  HelpCircle
+  HelpCircle,
+  Globe,
+  ChevronDown
 } from 'lucide-react';
 import { UserRole, AuthUser } from '../types/scholarship';
 import { Avatar } from './Avatar';
+import { useLanguage } from '../context/LanguageContext';
+import { SUPPORTED_LANGUAGES, LanguageCode } from '../utils/translations';
 
 export type PortalTab = 
   | 'command_center'
@@ -84,9 +88,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   unreadCount = 2,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const { lang, setLanguage, t } = useLanguage();
 
   // Normalize role
   const resolvedRole: UserRole = currentRole === 'applicant' ? 'student' : currentRole;
+  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === lang) || SUPPORTED_LANGUAGES[0];
 
   // Role-specific primary operational tabs with clear titles and rich icons
   const getPrimaryTabsForRole = () => {
@@ -140,23 +147,23 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   return (
     <aside
-      className={`bg-slate-900 text-slate-100 flex flex-col justify-between shrink-0 transition-all duration-300 border-r border-slate-800 relative z-30 shadow-2xl ${
+      className={`bg-gradient-to-b from-red-900 via-rose-950 to-red-950 text-white flex flex-col justify-between shrink-0 transition-all duration-300 border-r border-red-800/80 relative z-30 shadow-2xl font-['Inter',sans-serif] ${
         collapsed ? 'w-20' : 'w-72 sm:w-80'
       }`}
     >
-      {/* Top Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-800 space-y-3.5 bg-slate-950/60">
+      {/* Top Header - Regal Red Theme with AROHA MoTA in Inter font */}
+      <div className="p-4 sm:p-5 border-b border-red-800/60 space-y-3.5 bg-red-950/60">
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black text-xl flex items-center justify-center shadow-lg border border-indigo-400/40">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-700 text-white font-black text-xl flex items-center justify-center shadow-lg border border-red-400/40">
                 अ
               </div>
               <div>
-                <div className="text-base font-black text-white tracking-wide">
+                <div className="text-base font-black text-white tracking-tight leading-tight font-['Inter',sans-serif]">
                   AROHA MoTA
                 </div>
-                <div className="text-xs text-indigo-300 font-bold uppercase tracking-wider">
+                <div className="text-[11px] text-red-200 font-bold uppercase tracking-wider font-['Inter',sans-serif]">
                   National Portal
                 </div>
               </div>
@@ -166,27 +173,85 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition cursor-pointer shadow-sm"
+            className="p-2 rounded-xl bg-red-900/80 hover:bg-red-800 text-red-100 hover:text-white border border-red-700/80 transition cursor-pointer shadow-xs"
             title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
-            {collapsed ? <ChevronRight className="w-5 h-5 text-indigo-400" /> : <ChevronLeft className="w-5 h-5 text-slate-300" />}
+            {collapsed ? <ChevronRight className="w-4 h-4 text-white" /> : <ChevronLeft className="w-4 h-4 text-red-200" />}
           </button>
         </div>
 
         {/* Current Active Portal Indicator */}
         {!collapsed && (
-          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-800/90 border border-slate-700 shadow-inner">
-            <span className="text-xs font-black uppercase text-indigo-300 tracking-wider">
+          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-red-950/90 border border-red-800/80 shadow-xs">
+            <span className="text-xs font-black uppercase text-red-100 tracking-wider font-['Inter',sans-serif]">
               {resolvedRole} Workspace
             </span>
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+          </div>
+        )}
+
+        {/* Embedded Language Switcher directly in Side Panel */}
+        {!collapsed ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-red-900/60 hover:bg-red-900 border border-red-700/80 text-white text-xs font-bold transition cursor-pointer shadow-xs font-['Inter',sans-serif]"
+              title="Switch portal interface language"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Globe className="w-4 h-4 text-red-300 shrink-0" />
+                <span className="truncate">{currentLangObj.nativeName} ({currentLangObj.label})</span>
+              </div>
+              <ChevronDown className={`w-3.5 h-3.5 text-red-300 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isLangOpen && (
+              <div className="absolute left-0 right-0 mt-1.5 max-h-60 overflow-y-auto bg-stone-900 border border-red-700/80 rounded-2xl shadow-2xl py-2 z-50 divide-y divide-stone-800 animate-in fade-in font-['Inter',sans-serif]">
+                <div className="px-3 py-1 text-[10px] font-black uppercase text-red-300/80 tracking-wider">
+                  Select Language (29 Languages)
+                </div>
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(l.code);
+                      setIsLangOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition cursor-pointer ${
+                      lang === l.code
+                        ? 'bg-red-800 text-white font-black'
+                        : 'text-stone-200 hover:bg-stone-800 font-semibold'
+                    }`}
+                  >
+                    <span>{l.nativeName} <span className="text-[11px] text-stone-400 font-normal">({l.label})</span></span>
+                    <span className="text-[10px] text-red-300 font-mono font-bold uppercase">{l.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setCollapsed(false);
+                setIsLangOpen(true);
+              }}
+              className="p-2 rounded-xl bg-red-900/80 border border-red-700 text-red-200 hover:bg-red-800 hover:text-white transition cursor-pointer"
+              title={`Language: ${currentLangObj.nativeName}`}
+            >
+              <Globe className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
 
-      {/* User Profile Card */}
+      {/* User Profile Card - Red Theme */}
       {currentUser && !collapsed && (
-        <div className="px-5 py-3.5 bg-slate-800/40 border-b border-slate-800 flex items-center gap-3">
+        <div className="mx-3.5 my-2 p-3 bg-red-950/70 rounded-2xl border border-red-800/80 flex items-center gap-3">
           <Avatar
             type={currentUser.avatarType}
             name={currentUser.name}
@@ -194,20 +259,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             size="md"
           />
           <div className="overflow-hidden">
-            <div className="text-sm font-black text-white truncate tracking-wide">
+            <div className="text-xs font-black text-white truncate tracking-wide font-['Inter',sans-serif]">
               {currentUser.name}
             </div>
-            <div className="text-xs text-slate-400 font-semibold capitalize">
-              Authorized {currentUser.role}
+            <div className="text-[11px] text-red-200 font-semibold capitalize truncate font-['Inter',sans-serif]">
+              {currentUser.designation || `Authorized ${currentUser.role}`}
             </div>
           </div>
         </div>
       )}
 
-      {/* Navigation Tabs List: Big, Crisp Fonts with Modern High-Contrast Palette (No Green) */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-2 font-medium">
-        <div className="px-2.5 py-1 text-xs font-black uppercase tracking-wider text-slate-400">
-          {!collapsed ? `${resolvedRole.toUpperCase()} DESK WORKSPACE` : '•••'}
+      {/* Navigation Tabs List: Red Theme Aesthetic with High Contrast */}
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-1.5 font-medium">
+        <div className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-red-300/80 font-['Inter',sans-serif]">
+          {!collapsed ? `${resolvedRole.toUpperCase()} OPERATIONS` : '•••'}
         </div>
 
         {primaryTabs.map((tab) => {
@@ -218,17 +283,17 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               key={tab.id}
               type="button"
               onClick={() => onSelectTab(tab.id as PortalTab)}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition cursor-pointer text-left text-sm ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-left text-sm font-['Inter',sans-serif] ${
                 isActive
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold border border-indigo-400/50 shadow-lg shadow-indigo-900/40'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-semibold'
+                  ? 'bg-white text-red-950 font-black border border-white shadow-lg shadow-black/25'
+                  : 'text-red-100/90 hover:text-white hover:bg-red-800/60 font-semibold'
               }`}
               title={tab.label}
             >
-              <div className="flex items-center gap-3.5 truncate">
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-400'}`} />
+              <div className="flex items-center gap-3 truncate">
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-red-700' : 'text-red-300'}`} />
                 {!collapsed && (
-                  <span className="truncate text-sm sm:text-[14.5px] font-bold tracking-tight">
+                  <span className="truncate text-xs sm:text-[13.5px] font-bold tracking-tight">
                     {tab.label}
                   </span>
                 )}
@@ -241,45 +306,45 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('notifications')}
-          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition cursor-pointer text-left mt-3 text-sm ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition cursor-pointer text-left mt-2.5 text-sm font-['Inter',sans-serif] ${
             activeTab === 'notifications'
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold border border-indigo-400/50 shadow-lg'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800/80 font-semibold'
+              ? 'bg-white text-red-950 font-black border border-white shadow-lg shadow-black/25'
+              : 'text-red-100/90 hover:text-white hover:bg-red-800/60 font-semibold'
           }`}
           title="Live Notifications & Alerts Stream"
         >
-          <div className="flex items-center gap-3.5 truncate">
-            <Bell className={`w-5 h-5 shrink-0 ${activeTab === 'notifications' ? 'text-white' : 'text-indigo-400'}`} />
+          <div className="flex items-center gap-3 truncate">
+            <Bell className={`w-4 h-4 shrink-0 ${activeTab === 'notifications' ? 'text-red-700' : 'text-red-300'}`} />
             {!collapsed && (
-              <span className="text-sm sm:text-[14.5px] font-bold tracking-tight">
+              <span className="text-xs sm:text-[13.5px] font-bold tracking-tight">
                 Notifications & Alerts
               </span>
             )}
           </div>
           {unreadCount > 0 && (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-black border border-rose-400 shadow-sm">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-stone-900 font-black shadow-xs">
               {unreadCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* Bottom Utility Controls (Clean and Minimalist, No Portal Desk Operations) */}
-      <div className="p-3.5 border-t border-slate-800 space-y-2 bg-slate-950/70">
+      {/* Bottom Utility Controls - Red Theme with clearance for bottom-left bot */}
+      <div className="p-3.5 pb-20 border-t border-red-800/70 space-y-2 bg-red-950/80 font-['Inter',sans-serif]">
         {/* Offline Mode Switch */}
         <button
           type="button"
           onClick={onToggleOffline}
-          className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold border transition cursor-pointer ${
+          className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
             !isOnline
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-              : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+              ? 'bg-amber-400 text-stone-900 border-amber-300 hover:bg-amber-300'
+              : 'bg-red-900/60 text-red-100 border-red-700/80 hover:bg-red-900 hover:text-white shadow-2xs'
           }`}
           title="Toggle Offline-First Mode"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {!isOnline ? (
-              <WifiOff className="w-4 h-4 text-amber-400 animate-pulse" />
+              <WifiOff className="w-4 h-4 text-stone-900 animate-pulse" />
             ) : (
               <Wifi className="w-4 h-4 text-emerald-400" />
             )}
@@ -295,10 +360,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center gap-2.5 p-3 rounded-xl text-xs font-black text-slate-300 hover:text-white hover:bg-rose-950/40 border border-slate-700 hover:border-rose-600/50 transition cursor-pointer"
+          className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-red-100 hover:text-white bg-red-900/60 hover:bg-rose-900/90 border border-red-700/80 hover:border-red-600 transition cursor-pointer shadow-2xs"
           title="Sign out and return to Portal Login"
         >
-          <LogOut className="w-4 h-4 text-rose-400" />
+          <LogOut className="w-4 h-4 text-red-300" />
           {!collapsed && <span>Switch Portal / Sign Out</span>}
         </button>
       </div>

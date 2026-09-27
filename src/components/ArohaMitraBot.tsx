@@ -14,7 +14,8 @@ import {
   Award,
   CreditCard,
   WifiOff,
-  FileCheck
+  FileCheck,
+  ArrowLeftRight
 } from 'lucide-react';
 import { LanguageCode, SUPPORTED_LANGUAGES, getTranslation } from '../utils/translations';
 import { useLanguage } from '../context/LanguageContext';
@@ -187,6 +188,7 @@ const renderFormattedMarkdown = (text: string, isUserMessage = false): React.Rea
 export const ArohaMitraBot: React.FC<ArohaMitraBotProps> = ({ lang: propLang, onNavigateTab }) => {
   const { lang: contextLang, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [botPosition, setBotPosition] = useState<'right' | 'left'>('left');
   const [activeLang, setActiveLang] = useState<LanguageCode>(propLang || contextLang);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -298,12 +300,15 @@ export const ArohaMitraBot: React.FC<ArohaMitraBotProps> = ({ lang: propLang, on
   const generateLocalBotResponse = (userQuery: string, targetLang: LanguageCode): { reply: string; actionTab?: 'apply' | 'track' | 'guidelines' | 'scrutiny' | 'merit' } => {
     const q = userQuery.toLowerCase().trim();
 
-    // 1. SAFE ARITHMETIC / MATH CALCULATION (e.g. "37000 * 12", "55 * 8", "37000 + 42000")
-    const mathRegex = /^\s*(\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*(\d+(?:\.\d+)?)\s*$/;
-    const mathMatch = q.match(mathRegex);
+    // 1. SAFE ARITHMETIC / MATH CALCULATION (Handles general expressions like "25 * 4", "37000 * 12", "150000 / 12", "solve 50 + 25")
+    const mathClean = q.replace(/^(?:calculate|solve|what is|whats|compute)\s*/i, '').trim();
+    const mathRegex = /^(\d+(?:\.\d+)?)\s*([\+\-\*\/xX×÷])\s*(\d+(?:\.\d+)?)$/;
+    const mathMatch = mathClean.match(mathRegex);
     if (mathMatch) {
       const num1 = parseFloat(mathMatch[1]);
-      const op = mathMatch[2];
+      let op = mathMatch[2];
+      if (op === 'x' || op === 'X' || op === '×') op = '*';
+      if (op === '÷') op = '/';
       const num2 = parseFloat(mathMatch[3]);
       let res = 0;
       if (op === '+') res = num1 + num2;
@@ -313,14 +318,101 @@ export const ArohaMitraBot: React.FC<ArohaMitraBotProps> = ({ lang: propLang, on
 
       let extraContext = '';
       if (num1 === 37000 && num2 === 12 && op === '*') {
-        extraContext = '\n\n💡 **Note:** ₹37,000 × 12 months = ₹4,44,000, which is the total annual base JRF stipend under the National Fellowship for ST Students (NFST) fellowship!';
+        extraContext = '\n\n💡 **Scholarship Note:** ₹37,000 × 12 months = ₹4,44,000, which is the annual base JRF stipend under the National Fellowship for ST Students (NFST).';
       } else if (num1 === 42000 && num2 === 12 && op === '*') {
-        extraContext = '\n\n💡 **Note:** ₹42,000 × 12 months = ₹5,04,000, which is the total annual base SRF stipend under the NFST fellowship!';
+        extraContext = '\n\n💡 **Scholarship Note:** ₹42,000 × 12 months = ₹5,04,000, which is the annual base SRF stipend under NFST.';
       }
 
       return {
-        reply: `**Calculation Result:**\n\n\`${num1} ${op} ${num2} = ${res.toLocaleString('en-IN')}\`${extraContext}`,
+        reply: `**Math Calculation Result:**\n\n\`${num1} ${op} ${num2} = ${res.toLocaleString('en-IN')}\`${extraContext}`,
       };
+    }
+
+    // 2. WORLD & INDIAN CAPITALS (General Knowledge)
+    const capitalQuestions: Record<string, string> = {
+      'france': '**Capital of France:** **Paris** (City of Light, famous for the Eiffel Tower, Louvre Museum, and UNESCO headquarters).',
+      'germany': '**Capital of Germany:** **Berlin** (Famous for Brandenburg Gate and historical landmarks).',
+      'japan': '**Capital of Japan:** **Tokyo** (Metropolitan hub of technology and cultural heritage).',
+      'usa': '**Capital of the United States of America:** **Washington, D.C.** (District of Columbia).',
+      'united states': '**Capital of the United States of America:** **Washington, D.C.**',
+      'uk': '**Capital of the United Kingdom:** **London** (Located on the River Thames).',
+      'united kingdom': '**Capital of the United Kingdom:** **London**.',
+      'australia': '**Capital of Australia:** **Canberra** (Not Sydney or Melbourne; Canberra is the designated federal capital territory).',
+      'canada': '**Capital of Canada:** **Ottawa** (Located in the province of Ontario).',
+      'russia': '**Capital of Russia:** **Moscow** (Home to the Kremlin and Red Square).',
+      'china': '**Capital of China:** **Beijing**.',
+      'italy': '**Capital of Italy:** **Rome** (The Eternal City, surrounding Vatican City).',
+      'telangana': '**Capital of Telangana:** **Hyderabad** (Joint capital history, located on the Musi River, tech & biotech capital).',
+      'jharkhand': '**Capital of Jharkhand:** **Ranchi** (Known as the City of Waterfalls, historic land of Bhagwan Birsa Munda).',
+      'odisha': '**Capital of Odisha:** **Bhubaneswar** (Temple City of India, major education & tribal research hub).',
+      'meghalaya': '**Capital of Meghalaya:** **Shillong** (Known as the Scotland of the East, home to NEHU).',
+      'madhya pradesh': '**Capital of Madhya Pradesh:** **Bhopal** (City of Lakes, heart of central tribal cultural institutes).',
+      'andhra pradesh': '**Capital of Andhra Pradesh:** **Amaravati** (with Visakhapatnam and Kurnool administrative centers).',
+      'maharashtra': '**Capital of Maharashtra:** **Mumbai** (Financial capital of India).',
+      'assam': '**Capital of Assam:** **Dispur** (Guwahati metropolitan area).',
+      'west bengal': '**Capital of West Bengal:** **Kolkata** (Cultural capital of eastern India).',
+    };
+
+    for (const [place, ans] of Object.entries(capitalQuestions)) {
+      if (q.includes(`capital of ${place}`) || (q.includes('capital') && q.includes(place))) {
+        return { reply: ans };
+      }
+    }
+
+    // 3. SCIENCE, PHYSICS, ASTRONOMY & NATURE (General Knowledge)
+    if (q.includes('photosynthesis') || q.includes('प्रकाश संश्लेषण')) {
+      return {
+        reply: `**Photosynthesis (प्रकाश संश्लेषण):**\n\nPhotosynthesis is the biological process by which green plants, algae, and certain bacteria convert light energy into chemical energy stored in glucose molecules.\n\n- **Chemical Formula:** \`6CO₂ + 6H₂O + Light Energy → C₆H₁₂O₆ + 6O₂\`\n- **Chlorophyll:** Green pigment inside plant chloroplasts that absorbs sunlight (primarily blue and red wavelengths).\n- **Significance:** Produces the oxygen we breathe and provides the base energy source for almost all Earth ecosystems!`,
+      };
+    }
+
+    if (q.includes('solar system') || q.includes('planets') || q.includes('सौर मंडल') || q.includes('ग्रह')) {
+      return {
+        reply: `**Our Solar System (सौर मंडल):**\n\nOur Solar System consists of our central star, the **Sun**, gravitationally binding **8 major planets**, dwarf planets (like Pluto), and countless asteroids and comets.\n\n1. **Mercury (बुध):** Closest planet to the Sun, fastest orbit (88 days).\n2. **Venus (शुक्र):** Hottest planet due to runaway greenhouse effect, often called Earth's twin.\n3. **Earth (पृथ्वी):** Our home planet with liquid water, protective atmosphere, and abundant life.\n4. **Mars (मंगल):** The Red Planet, rich in iron oxide.\n5. **Jupiter (बृहस्पति):** Largest planet, gas giant with iconic Great Red Spot.\n6. **Saturn (शनि):** Famous for its spectacular icy ring system.\n7. **Uranus (अरुण):** Ice giant tilted on its side.\n8. **Neptune (वरुण):** Outermost major planet with supersonic winds.`,
+      };
+    }
+
+    if (q.includes('speed of light') || q.includes('प्रकाश की गति')) {
+      return {
+        reply: `**Speed of Light (प्रकाश की गति):**\n\nThe speed of light in a vacuum is denoted by **$c$** and is an absolute universal physical constant:\n\n- **Exact Value:** \`299,792,458 meters per second\` (~**3.0 × 10⁸ m/s** or **300,000 km/s**).\n- It takes approximately **8 minutes and 20 seconds** for sunlight to reach Earth!`,
+      };
+    }
+
+    if (q.includes('dna') || q.includes('mitochondria') || q.includes('cell')) {
+      return {
+        reply: `**Cellular Biology Fundamentals:**\n\n- **DNA (Deoxyribonucleic Acid):** Double-helix genetic macromolecule carrying genetic instructions for development, functioning, and reproduction.\n- **Mitochondria:** Widely known as the **"powerhouse of the cell"**, generating ATP (Adenosine Triphosphate) through oxidative phosphorylation.\n- **Nucleus:** Organelle containing genomic DNA and regulating gene expression.`,
+      };
+    }
+
+    // 4. HISTORICAL LEADERS & CONSTITUTIONAL ARCHITECTS
+    if (q.includes('ambedkar') || q.includes('भीमराव') || q.includes('संविधान निर्माता')) {
+      return {
+        reply: `**Dr. Bhimrao Ramji Ambedkar (1891–1956):**\n\n- **Architect of the Indian Constitution:** Chairman of the Drafting Committee of the Constituent Assembly of India.\n- **Social Reformer & Scholar:** Jurist, economist, and visionary who championed equality, social justice, and constitutional protections (Articles 15, 16, 46, 335, 342) for Scheduled Castes (SC) and Scheduled Tribes (ST).\n- **First Law Minister:** Served as the first Law & Justice Minister of independent Bharat and posthumously conferred the Bharat Ratna (1990).`,
+      };
+    }
+
+    if (q.includes('birsa munda') || q.includes('बिरसा मुंडा') || q.includes('धरती आबा')) {
+      return {
+        reply: `**Bhagwan Birsa Munda (1875–1900) - 'Dharti Aaba':**\n\n- **Tribal Freedom Fighter & Folk Hero:** Spearheaded the *Ulgulan* (The Great Tumult) resistance movement against British colonial exploitation and the feudal landlord system in Chotanagpur (Jharkhand).\n- **Protector of Tribal Heritage:** Advocated fiercely for tribal self-governance (*Abua Raj*) and indigenous rights over *Jal, Jungle, Jameen* (Water, Forest, Land).\n- **Janjatiya Gaurav Divas:** November 15 (his birth anniversary) is officially observed nationwide as Janjatiya Gaurav Divas by the Government of India.`,
+      };
+    }
+
+    // 5. USER ASKING ABOUT THEIR OWN PERCENTAGE & CUTOFF
+    const pctMatch = q.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (pctMatch && (q.includes('eligible') || q.includes('apply') || q.includes('marks') || q.includes('score') || q.includes('qualify'))) {
+      const userPct = parseFloat(pctMatch[1]);
+      const minCutoff = 55.0;
+      if (userPct >= minCutoff) {
+        return {
+          reply: `**Eligibility Analysis for ${userPct}% Marks:**\n\n✅ **Yes, you are academically eligible!**\n\n- **Scheme Baseline Cutoff:** Minimum **55.0% marks** (or equivalent CGPA) in your Master's degree is required for Scheduled Tribe (ST) applicants under MoTA guidelines.\n- **Your Score:** With **${userPct}%**, you comfortably meet and exceed the statutory threshold by **+${(userPct - minCutoff).toFixed(1)}%**!\n- **Next Steps:**\n  1. For **NFST (Ph.D fellowship)**: Ensure you have UGC-NET / CSIR-NET qualification or confirmed Ph.D admission.\n  2. For **NOS (Overseas scholarship)**: Secure an unconditional offer from a Top 500 QS world university and ensure family income is below ₹8.00 Lakhs/annum.\n\nClick **'Scholarship Application'** on the side panel to submit your form!`,
+          actionTab: 'apply',
+        };
+      } else {
+        return {
+          reply: `**Eligibility Analysis for ${userPct}% Marks:**\n\n⚠️ **Below Standard Cutoff (${minCutoff}%):**\n\n- Under current statutory guidelines for NFST and NOS, the prescribed minimum qualifying degree percentage for ST candidates is **55.0%**.\n- With **${userPct}%**, your score is **${(minCutoff - userPct).toFixed(1)}% below** the standard baseline.\n- **Options:**\n  - If your university calculates CGPA with a conversion factor yielding ≥55%, you may upload an official University CGPA-to-Percentage conversion certificate.\n  - Look into State Tribal Development Department post-graduate educational grants which may accept relaxation for specific PVTG communities.`,
+          actionTab: 'guidelines',
+        };
+      }
     }
 
     // 2. GREETINGS & INTRODUCTIONS
@@ -645,53 +737,70 @@ export const ArohaMitraBot: React.FC<ArohaMitraBotProps> = ({ lang: propLang, on
 
   return (
     <>
-      {/* Floating Launcher Button */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
-        {!isOpen && (
-          <div className="bg-emerald-950 text-emerald-100 text-xs px-3 py-1.5 rounded-full shadow-lg border border-emerald-700/60 hidden sm:flex items-center gap-1.5 animate-bounce">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold">{t('botName')}</span>
-            <span className="text-[10px] text-emerald-300">({activeLangOption.nativeName})</span>
-          </div>
-        )}
-
-        <button
-          id="aroha-mitra-bot-toggle"
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={`group flex items-center gap-2.5 p-3.5 sm:px-4 sm:py-3.5 rounded-2xl text-white shadow-2xl transition-all duration-300 cursor-pointer ${
-            isOpen
-              ? 'bg-stone-900 hover:bg-stone-800'
-              : 'bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 hover:from-emerald-700 hover:to-teal-700 hover:scale-105'
-          }`}
-          title="Open AROHA Mitra Assistant"
-        >
-          {isOpen ? (
-            <X className="w-6 h-6 text-emerald-300" />
-          ) : (
-            <>
-              <div className="relative">
-                <div className="w-7 h-7 rounded-xl bg-amber-400 text-stone-900 flex items-center justify-center font-bold shadow-xs">
-                  <Bot className="w-4 h-4" />
+      {/* Floating Launcher Button - located on left bottom corner */}
+      <div
+        className={`fixed z-40 flex flex-col gap-2 transition-all duration-300 ${
+          botPosition === 'left'
+            ? 'bottom-6 left-5 sm:left-6 items-start'
+            : 'bottom-28 right-5 sm:right-6 items-end'
+        }`}
+      >
+        <div className="flex items-center gap-1.5">
+          <button
+            id="aroha-mitra-bot-toggle"
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className={`group flex items-center gap-2.5 p-3 sm:px-4 sm:py-3 rounded-2xl text-white shadow-2xl transition-all duration-300 cursor-pointer ${
+              isOpen
+                ? 'bg-stone-900 hover:bg-stone-800'
+                : 'bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 hover:from-emerald-700 hover:to-teal-700 hover:scale-105'
+            }`}
+            title="Open AROHA Mitra Assistant"
+          >
+            {isOpen ? (
+              <X className="w-5 h-5 text-emerald-300" />
+            ) : (
+              <>
+                <div className="relative">
+                  <div className="w-6 h-6 rounded-lg bg-amber-400 text-stone-900 flex items-center justify-center font-bold shadow-xs">
+                    <Bot className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
                 </div>
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                <span className="hidden sm:inline font-bold text-xs tracking-wide">
+                  {t('botName')}
                 </span>
-              </div>
-              <span className="hidden sm:inline font-bold text-sm tracking-wide">
-                {t('botName')}
-              </span>
-            </>
-          )}
-        </button>
+                <span className="text-[10px] text-emerald-300 hidden md:inline">
+                  ({activeLangOption.nativeName})
+                </span>
+              </>
+            )}
+          </button>
+
+          {/* Position Switcher if user desires */}
+          <button
+            type="button"
+            onClick={() => setBotPosition((prev) => (prev === 'left' ? 'right' : 'left'))}
+            className="p-2 rounded-xl bg-stone-900/85 hover:bg-stone-900 text-stone-300 hover:text-white border border-stone-700 shadow-md transition cursor-pointer text-xs"
+            title={botPosition === 'left' ? 'Move bot to right side' : 'Move bot to left side'}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Expandable Chat Window */}
       {isOpen && (
         <div
           id="aroha-mitra-chat-window"
-          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-96 md:w-[440px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-emerald-800/40 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4"
+          className={`fixed z-50 w-[92vw] sm:w-96 md:w-[440px] max-h-[75vh] bg-white rounded-2xl shadow-2xl border border-emerald-800/40 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 ${
+            botPosition === 'left'
+              ? 'bottom-20 left-4 sm:left-6'
+              : 'bottom-28 right-4 sm:right-6'
+          }`}
         >
           {/* Forest Green Header */}
           <div className="p-3.5 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white flex items-center justify-between border-b border-emerald-800">
@@ -713,6 +822,16 @@ export const ArohaMitraBot: React.FC<ArohaMitraBotProps> = ({ lang: propLang, on
             </div>
 
             <div className="flex items-center gap-1">
+              {/* Position Dock Switcher in Header */}
+              <button
+                type="button"
+                onClick={() => setBotPosition((prev) => (prev === 'right' ? 'left' : 'right'))}
+                className="p-1.5 text-emerald-300 hover:text-white hover:bg-emerald-800/50 rounded-lg transition cursor-pointer"
+                title={botPosition === 'right' ? 'Dock chat to left' : 'Dock chat to right'}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              </button>
+
               {/* In-Chat Language Selector */}
               <div className="relative">
                 <button

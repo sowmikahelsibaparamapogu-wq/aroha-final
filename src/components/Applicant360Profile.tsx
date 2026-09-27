@@ -255,7 +255,7 @@ export const Applicant360Profile: React.FC<Applicant360ProfileProps> = ({
                 
                 {/* Extracted Fields Preview */}
                 <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-[11px] space-y-1">
-                  {Object.entries(doc.extractedFields || {}).slice(0, 3).map(([k, v]) => (
+                  {Object.entries(doc?.extractedFields || {}).slice(0, 3).map(([k, v]) => (
                     <div key={k} className="flex justify-between">
                       <span className="text-slate-400 truncate max-w-[120px]">{k}</span>
                       <span className="font-bold text-slate-700 truncate max-w-[120px]">{String(v)}</span>

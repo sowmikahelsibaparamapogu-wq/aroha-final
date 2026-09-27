@@ -405,23 +405,54 @@ export default function App() {
       const schemeRule = updatedRules[app.scheme || 'NFST'];
       const evalResult = evaluateApplication(app, schemeRule);
 
+      const applicantMarks = app.academic?.qualifyingPercentage ?? 0;
+      const minRequiredMarks = schemeRule.eligibility.minQualifyingPercentage;
+      const failsCutoff = applicantMarks < minRequiredMarks;
+
       let newStatus = app.status;
-      if (evalResult.passed && (app.status === 'rejected' || app.status === 'flagged_deficiency')) {
-        newStatus = 'in_scrutiny';
-      } else if (!evalResult.passed && (app.status === 'in_scrutiny' || app.status === 'submitted')) {
-        newStatus = 'flagged_deficiency';
+      let newDeficiencies = [...(app.deficiencies || [])];
+
+      if (failsCutoff || !evalResult.passed) {
+        // If below the updated cutoff, mark application as flagged deficiency or rejected
+        newStatus = app.status === 'rejected' ? 'rejected' : 'flagged_deficiency';
+
+        // Ensure deficiency notice for cutoff deficit is registered
+        const hasCutoffDeficiency = newDeficiencies.some((d) => d.field === 'qualifyingPercentage');
+        if (!hasCutoffDeficiency && failsCutoff) {
+          newDeficiencies.push({
+            id: `def_cutoff_${Date.now()}_${app.id}`,
+            field: 'qualifyingPercentage',
+            title: 'Qualifying Score Below Scheme Cutoff',
+            description: `Candidate scored ${applicantMarks}%, which is below the updated ${app.scheme} statutory cutoff of ${minRequiredMarks}%.`,
+            severity: 'critical',
+            issuedAt: new Date().toISOString(),
+            isResolved: false,
+          });
+        }
+      } else if (evalResult.passed && !failsCutoff) {
+        // Remove cutoff deficiency if previously added and candidate now meets or exceeds threshold
+        newDeficiencies = newDeficiencies.filter((d) => d.field !== 'qualifyingPercentage');
+        if (app.status === 'flagged_deficiency' && newDeficiencies.length === 0) {
+          newStatus = 'in_scrutiny';
+        }
       }
 
       return {
         ...app,
         status: newStatus,
+        deficiencies: newDeficiencies,
         aiAnalysis: {
           ...app.aiAnalysis,
-          eligibilityPassed: evalResult.passed,
-          flags: evalResult.flags,
-          riskScore: evalResult.riskScore,
-          calculatedMeritScore: evalResult.meritScore,
-          overallConfidence: evalResult.overallConfidence,
+          eligibilityPassed: evalResult.passed && !failsCutoff,
+          flags: failsCutoff 
+            ? [`Qualifying percentage (${applicantMarks}%) is below updated cutoff of ${minRequiredMarks}%`, ...evalResult.flags.filter(f => !f.includes('threshold'))]
+            : evalResult.flags,
+          riskScore: failsCutoff ? 'High' : evalResult.riskScore,
+          meritScore: evalResult.meritScore,
+          overallConfidence: failsCutoff ? Math.min(evalResult.overallConfidence, 45) : evalResult.overallConfidence,
+          summary: failsCutoff 
+            ? `Ineligible: Candidate scored ${applicantMarks}%, which is below the updated MoTA ${app.scheme} cutoff of ${minRequiredMarks}%. Flagged for committee review.`
+            : evalResult.summary,
         },
         updatedAt: new Date().toISOString(),
       };
@@ -639,6 +670,8 @@ export default function App() {
           initialRole={role}
         />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        {/* Universal AI Conversational Assistant Bot also available in Login Portal */}
+        <ArohaMitraBot lang={lang} onNavigateTab={handleBotNavigate} />
       </>
     );
   }
@@ -699,30 +732,6 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2.5 text-xs flex-wrap">
-              {/* Preset Upload & Controller Button */}
-              <button
-                type="button"
-                onClick={() => setIsPresetModalOpen(true)}
-                className={`px-4 py-2 rounded-2xl font-black transition cursor-pointer shadow-md flex items-center gap-1.5 ${
-                  activePresets.length > 0
-                    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-emerald-700/20'
-                    : 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white shadow-amber-600/20 animate-pulse'
-                }`}
-                title="Configure and add multiple presets one by one across India's 36 states"
-              >
-                <span>{activePresets.length > 0 ? `⚙️ Presets (${activePresets.length} Active)` : '➕ New Preset'}</span>
-              </button>
-
-              {/* Dynamic Live Parameter Controller */}
-              <button
-                type="button"
-                onClick={() => setIsParamModalOpen(true)}
-                className="px-4 py-2 rounded-2xl bg-white hover:bg-slate-50 text-indigo-900 border border-slate-300 font-black transition cursor-pointer shadow-xs flex items-center gap-1.5"
-                title="Update system-wide policy parameters and dynamically recalculate all features"
-              >
-                <span>⚡ Parameters</span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setIsDemoModalOpen(true)}
@@ -923,13 +932,18 @@ export default function App() {
 
             {/* Feature 12: No-Code Rule Builder */}
             {activeTab === 'rule_builder' && (
-              <NoCodeRuleBuilder applications={applications} />
+              <NoCodeRuleBuilder
+                applications={applications}
+                onApplyRulePolicy={handleUpdateParameters}
+              />
             )}
 
             {/* Feature 13: Cross-Scheme Recommendation Cards */}
             {activeTab === 'cross_scheme' && (
               <CrossSchemeRecommender
                 application={currentApplication || undefined}
+                allApplications={applications}
+                onSelectApplication={setSelectedAppId}
                 onApplyAlternative={(scheme) => {
                   addToast('info', 'Scheme Selected', `Initiated application for ${scheme}.`);
                   setActiveTab('apply');
@@ -1055,6 +1069,7 @@ export default function App() {
       {scrutinyModalApp && (
         <ScrutinyModal
           application={scrutinyModalApp}
+          rules={rules}
           onClose={() => setScrutinyModalApp(null)}
           onApprove={handleApproveFromScrutiny}
           onIssueDeficiency={handleIssueDeficiencyFromScrutiny}

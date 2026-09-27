@@ -598,7 +598,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                {Object.entries(document.extractedFields || {}).map(([k, v]) => (
+                {Object.entries(document?.extractedFields || {}).map(([k, v]) => (
                   <div key={k} className="bg-white p-2 rounded border border-slate-100">
                     <span className="text-slate-400 block">{k}</span>
                     <span className="font-semibold text-slate-800">{String(v)}</span>

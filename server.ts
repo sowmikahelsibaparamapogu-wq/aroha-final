@@ -497,9 +497,9 @@ app.post('/api/chat', async (req, res) => {
 
     const ai = getGeminiClient();
     if (!ai) {
-      return res.status(503).json({
-        error: 'GEMINI_API_KEY not configured',
+      return res.status(200).json({
         fallback: true,
+        message: 'No GEMINI_API_KEY configured on server; using comprehensive local knowledge engine.',
       });
     }
 

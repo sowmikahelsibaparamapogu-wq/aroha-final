@@ -146,15 +146,15 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialRole = 'stud
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between overflow-x-hidden font-sans select-none">
-      {/* Exclusively Forest Background for Login */}
+      {/* Crystal Clear Realistic Forest Background for Login */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <img
           src="/realistic_forest_bg.jpg"
           alt="Lush forest canopy"
-          className="w-full h-full object-cover object-center scale-105 filter brightness-90 contrast-105"
+          className="w-full h-full object-cover object-center filter brightness-95 contrast-105 saturate-110"
         />
-        {/* Atmospheric Forest Mist Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#062418]/80 via-[#063020]/60 to-[#041c12]/85 backdrop-blur-[2px]" />
+        {/* Subtle, translucent contrast gradient to ensure clear forest visibility with legible typography */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/45" />
       </div>
 
       {/* Top Header */}

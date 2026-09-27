@@ -189,8 +189,18 @@ export const BulkVerificationQueue: React.FC<BulkVerificationQueueProps> = ({
                       <div className="font-medium text-slate-800">{app.applicant?.stCommunity}</div>
                       <div className="text-[10px] text-slate-400">{app.applicant?.district}, {app.applicant?.state}</div>
                     </td>
-                    <td className="p-3 font-bold text-emerald-700">
-                      {app.aiAnalysis?.overallConfidence || 95}%
+                    <td className="p-3">
+                      {(() => {
+                        const conf = app.aiAnalysis?.overallConfidence !== undefined ? app.aiAnalysis.overallConfidence : 80;
+                        const colorClass = conf >= 85 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+                                           conf >= 60 ? 'text-amber-700 bg-amber-50 border-amber-200' :
+                                           'text-rose-700 bg-rose-50 border-rose-200';
+                        return (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black border ${colorClass}`}>
+                            {conf}%
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="p-3">
                       {app.deficiencies && app.deficiencies.length > 0 ? (
