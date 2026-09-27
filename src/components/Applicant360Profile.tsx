@@ -52,12 +52,75 @@ export const Applicant360Profile: React.FC<Applicant360ProfileProps> = ({
 
   const { applicant, academic, bankDetails, documents = [], aiAnalysis, status, scheme } = application;
 
-  // Derive Merit Rank
-  const meritRank = 14;
-  const nationalPercentile = '98.8th';
+  // Derive Accurate Dynamic Merit Ranking, Percentile, and Confidence
+  const { meritRank, totalCandidates, nationalPercentile, accurateConfidence, accurateMeritScore } = React.useMemo(() => {
+    const list = allApplications && allApplications.length > 0 ? allApplications : [application];
+    
+    // Sort applications by merit score, then qualifying percentage, then passing year
+    const sorted = [...list].sort((a, b) => {
+      const scoreA = a.aiAnalysis?.meritScore ?? Math.round(a.academic?.qualifyingPercentage ?? 0);
+      const scoreB = b.aiAnalysis?.meritScore ?? Math.round(b.academic?.qualifyingPercentage ?? 0);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      const marksA = a.academic?.qualifyingPercentage ?? 0;
+      const marksB = b.academic?.qualifyingPercentage ?? 0;
+      return marksB - marksA;
+    });
+
+    const index = sorted.findIndex((a) => a.id === application.id);
+    const rank = index >= 0 ? index + 1 : sorted.length;
+    const total = sorted.length;
+
+    // Accurate Percentile
+    const pct = total > 1
+      ? (((total - rank) / (total - 1)) * 100).toFixed(1)
+      : '100.0';
+
+    return {
+      meritRank: rank,
+      totalCandidates: total,
+      nationalPercentile: `${pct}th`,
+      accurateConfidence: application.aiAnalysis?.overallConfidence ?? 100,
+      accurateMeritScore: application.aiAnalysis?.meritScore ?? Math.round(application.academic?.qualifyingPercentage ?? 75),
+    };
+  }, [allApplications, application]);
 
   return (
     <div className="space-y-6">
+      {/* Dossier Switcher if multiple applications exist */}
+      {allApplications && allApplications.length > 1 && onSelectAnother && (
+        <div className="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-indigo-500" />
+            Switch Active Dossier ({allApplications.length} Ingested):
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {allApplications.slice(0, 8).map((app) => (
+              <button
+                key={app.id}
+                type="button"
+                onClick={() => onSelectAnother(app.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  app.id === application.id
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <span>{app.applicant.fullName}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
+                  app.aiAnalysis?.overallConfidence === 100 
+                    ? 'bg-emerald-200 text-emerald-900' 
+                    : app.aiAnalysis?.overallConfidence === 20 
+                    ? 'bg-rose-200 text-rose-900' 
+                    : 'bg-slate-200 text-slate-800'
+                }`}>
+                  {app.aiAnalysis?.overallConfidence ?? 90}%
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Top Dossier Header Card */}
       <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 rounded-3xl p-6 text-white shadow-xl border border-emerald-500/20 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -90,28 +153,43 @@ export const Applicant360Profile: React.FC<Applicant360ProfileProps> = ({
             </div>
           </div>
 
-          {/* Quick Badges: Merit Rank, Risk Score, Eligibility */}
+          {/* Quick Badges: Accurate Merit Rank, Confidence, Risk Score, Status */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[90px]">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[95px]">
               <div className="text-[10px] uppercase text-emerald-200 font-bold">National Rank</div>
               <div className="text-xl font-bold font-roman text-amber-300">#{meritRank}</div>
-              <div className="text-[10px] text-slate-300">{nationalPercentile}</div>
+              <div className="text-[10px] text-slate-300">Top {nationalPercentile}</div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[90px]">
-              <div className="text-[10px] uppercase text-emerald-200 font-bold">AI Risk</div>
-              <div className="text-xl font-bold font-roman text-emerald-400">
-                {aiAnalysis?.riskScore || 'Low'}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[95px]">
+              <div className="text-[10px] uppercase text-emerald-200 font-bold">AI Confidence</div>
+              <div className={`text-xl font-bold font-roman ${
+                accurateConfidence === 100 ? 'text-emerald-300' :
+                accurateConfidence <= 25 ? 'text-rose-300' : 'text-amber-300'
+              }`}>
+                {accurateConfidence}%
               </div>
-              <div className="text-[10px] text-slate-300">Clean Dossier</div>
+              <div className="text-[10px] text-slate-300">
+                {accurateConfidence === 100 ? '100% Perfect' : accurateConfidence <= 25 ? '20% Ineligible' : 'Calibrated'}
+              </div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[90px]">
-              <div className="text-[10px] uppercase text-emerald-200 font-bold">Status</div>
-              <div className="text-base font-bold font-roman text-blue-300 capitalize">
-                {status.replace('_', ' ')}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[95px]">
+              <div className="text-[10px] uppercase text-emerald-200 font-bold">Merit Index</div>
+              <div className="text-xl font-bold font-roman text-sky-300">
+                {accurateMeritScore}
               </div>
-              <div className="text-[10px] text-slate-300">Sanctioned</div>
+              <div className="text-[10px] text-slate-300">Out of 100</div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20 text-center min-w-[95px]">
+              <div className="text-[10px] uppercase text-emerald-200 font-bold">Eligibility</div>
+              <div className={`text-base font-bold font-roman capitalize ${
+                aiAnalysis?.eligibilityPassed ? 'text-emerald-300' : 'text-rose-300'
+              }`}>
+                {aiAnalysis?.eligibilityPassed ? 'Eligible' : 'Discrepant'}
+              </div>
+              <div className="text-[10px] text-slate-300 capitalize">{status.replace('_', ' ')}</div>
             </div>
           </div>
         </div>

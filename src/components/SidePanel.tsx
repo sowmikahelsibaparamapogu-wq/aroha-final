@@ -156,14 +156,14 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-700 text-white font-black text-xl flex items-center justify-center shadow-lg border border-red-400/40">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 via-rose-600 to-red-700 text-white font-bold text-base flex items-center justify-center shadow-md border border-red-400/40">
                 अ
               </div>
               <div>
-                <div className="text-base font-black text-white tracking-tight leading-tight font-['Inter',sans-serif]">
+                <div className="text-xs font-bold text-white/95 tracking-wide leading-tight font-sans">
                   AROHA MoTA
                 </div>
-                <div className="text-[11px] text-red-200 font-bold uppercase tracking-wider font-['Inter',sans-serif]">
+                <div className="text-[10px] text-red-200/80 font-bold uppercase tracking-wider font-sans">
                   National Portal
                 </div>
               </div>

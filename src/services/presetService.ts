@@ -23,6 +23,498 @@ export interface PresetScenario {
 // 1. Initial Baseline: STRICTLY EMPTY (Zero false/mock data before user adds preset)
 export const BASELINE_APPLICATIONS: Application[] = [];
 
+// Curated Spectrum Cohort: 100% Correct Person, 20% Test Candidate, and Calibrated Mistake Reductions
+export const COHORT_20PCT_CONFIDENCE_SPECTRUM: Application[] = [
+  {
+    id: 'app_spec_100',
+    applicationNumber: 'NFST/2026/PERFECT-100',
+    scheme: 'NFST',
+    submittedAt: '2026-02-01T10:00:00Z',
+    updatedAt: '2026-02-01T10:00:00Z',
+    status: 'dbt_active',
+    applicant: {
+      fullName: 'Ananya Soren',
+      fatherName: 'Prakash Soren',
+      motherName: 'Sunita Soren',
+      gender: 'Female',
+      dob: '1998-04-12',
+      aadhaarNumber: 'XXXX-XXXX-8921',
+      mobile: '+91 94311 55678',
+      email: 'ananya.soren@jnu.ac.in',
+      stCommunity: 'Santhal',
+      state: 'Jharkhand',
+      district: 'Dumka',
+      pincode: '814101',
+      domicileState: 'Jharkhand',
+      annualFamilyIncome: 220000,
+      parentOccupation: 'Primary School Teacher & Agriculture',
+    },
+    academic: {
+      qualifyingDegree: 'M.Sc. in Biotechnology',
+      qualifyingPercentage: 88.5,
+      passingYear: 2024,
+      institutionName: 'Jawaharlal Nehru University (JNU), New Delhi',
+      targetProgram: 'Ph.D',
+      specialization: 'Indigenous Medicinal Plant Genetics',
+      researchTopic: 'Molecular characterization of bioactive flavonoids in Santhal tribal herbal remedies',
+      ugcNetRollNo: 'JH04001923',
+      ugcNetScore: 99.2,
+      ugcNetYear: '2024',
+      isJrfQualified: true,
+    },
+    bankDetails: {
+      accountHolderName: 'Ananya Soren',
+      accountNumber: '39201940192',
+      ifscCode: 'SBIN0000072',
+      bankName: 'State Bank of India',
+      branchName: 'Dumka Main Branch',
+      isAadhaarSeeded: true,
+    },
+    documents: [
+      {
+        id: 'doc_100_caste',
+        type: 'caste_certificate',
+        name: 'Santhal_ST_Certificate_Official.pdf',
+        size: 1450000,
+        uploadedAt: '2026-02-01T10:05:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 100,
+        extractedFields: {
+          'Candidate Name': 'Ananya Soren',
+          'Father Name': 'Prakash Soren',
+          'Tribe / Category': 'Santhal (Scheduled Tribe)',
+          'Issuing Authority': 'Sub-Divisional Officer (Civil), Dumka',
+        },
+      },
+      {
+        id: 'doc_100_marks',
+        type: 'marksheet',
+        name: 'MSc_Biotech_Transcript_JNU.pdf',
+        size: 2100000,
+        uploadedAt: '2026-02-01T10:06:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 100,
+        extractedFields: {
+          'Candidate Name': 'Ananya Soren',
+          'Aggregate Percentage': '88.5%',
+          'Degree Awarded': 'Master of Science with Distinction',
+        },
+      },
+      {
+        id: 'doc_100_bonafide',
+        type: 'bonafide_certificate',
+        name: 'UGC_NET_JRF_Award_Letter.pdf',
+        size: 1200000,
+        uploadedAt: '2026-02-01T10:07:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 100,
+        extractedFields: {
+          'Fellowship Award': 'Junior Research Fellowship (JRF)',
+          'Percentile Score': '99.2',
+        },
+      },
+    ],
+    aiAnalysis: {
+      overallConfidence: 100,
+      eligibilityPassed: true,
+      requiresHumanReview: false,
+      flags: ['100% Exemplary Dossier: High Research Merit & Full Compliance'],
+      riskScore: 'Low',
+      meritScore: 100,
+      verifiedFieldsCount: 16,
+      totalFieldsCount: 16,
+      summary: '100% Verified Candidate. All statutory criteria, academic cutoffs, and credentials verified with zero discrepancies.',
+    },
+    deficiencies: [],
+  },
+  {
+    id: 'app_spec_020',
+    applicationNumber: 'NFST/2026/TEST-20PCT',
+    scheme: 'NFST',
+    submittedAt: '2026-02-03T14:15:00Z',
+    updatedAt: '2026-02-03T14:15:00Z',
+    status: 'flagged_deficiency',
+    applicant: {
+      fullName: 'Vikram Munda',
+      fatherName: 'Sukhram Munda',
+      motherName: 'Maino Devi',
+      gender: 'Male',
+      dob: '1997-09-18',
+      aadhaarNumber: 'XXXX-XXXX-4912',
+      mobile: '+91 98351 90214',
+      email: 'vikram.munda.test@gmail.com',
+      stCommunity: 'Munda',
+      state: 'Jharkhand',
+      district: 'Khunti',
+      pincode: '835210',
+      domicileState: 'Jharkhand',
+      annualFamilyIncome: 380000,
+      parentOccupation: 'Farmer',
+    },
+    academic: {
+      qualifyingDegree: 'Bachelor of Arts (General)',
+      qualifyingPercentage: 46.2,
+      passingYear: 2023,
+      institutionName: 'Ranchi Regional College',
+      targetProgram: 'Ph.D',
+      specialization: 'Tribal Folklore',
+      ugcNetRollNo: 'JH02009182',
+      ugcNetScore: 41.0,
+      ugcNetYear: '2023',
+      isJrfQualified: false,
+    },
+    bankDetails: {
+      accountHolderName: 'Vikram Munda',
+      accountNumber: '29104910291',
+      ifscCode: 'SBIN0001092',
+      bankName: 'State Bank of India',
+      branchName: 'Khunti Branch',
+      isAadhaarSeeded: false,
+    },
+    documents: [
+      {
+        id: 'doc_20_caste',
+        type: 'caste_certificate',
+        name: 'Damaged_Caste_Certificate.jpg',
+        size: 980000,
+        uploadedAt: '2026-02-03T14:20:00Z',
+        ocrStatus: 'mismatch',
+        ocrConfidence: 20,
+        mismatches: [
+          'Candidate Name Mismatch: Document shows "Vikram Kumar" instead of "Vikram Munda"',
+          'Community Mismatch: Certificate indicates Kurmi (OBC) category instead of Scheduled Tribe (Munda)',
+        ],
+        extractedFields: {
+          'Candidate Name': 'Vikram Kumar',
+          'Category Recorded': 'OBC (Kurmi)',
+        },
+      },
+      {
+        id: 'doc_20_marks',
+        type: 'marksheet',
+        name: 'BA_Marksheet_Scanned.pdf',
+        size: 1100000,
+        uploadedAt: '2026-02-03T14:22:00Z',
+        ocrStatus: 'mismatch',
+        ocrConfidence: 20,
+        mismatches: [
+          'Qualifying percentage (46.2%) fails statutory MoTA cutoff of 55.0% (Discrepancy: -8.8%)',
+        ],
+        extractedFields: {
+          'Aggregate Percentage': '46.2%',
+          'Division': 'Third Division',
+        },
+      },
+    ],
+    aiAnalysis: {
+      overallConfidence: 20,
+      eligibilityPassed: false,
+      requiresHumanReview: true,
+      flags: [
+        'Qualifying percentage (46.2%) is below statutory cutoff of 55.0%',
+        'Candidate Name Mismatch on Caste Certificate (Vikram Kumar vs Vikram Munda)',
+        'Caste category records OBC instead of ST Munda',
+        'Missing mandatory Ph.D Bonafide / NET JRF scorecard',
+      ],
+      riskScore: 'High',
+      meritScore: 35,
+      verifiedFieldsCount: 3,
+      totalFieldsCount: 16,
+      summary: 'Ineligible. Exactly 20% verification confidence. Fails statutory 55% academic threshold with multiple critical caste credential discrepancies.',
+    },
+    deficiencies: [
+      {
+        id: 'def_20_marks',
+        field: 'qualifyingPercentage',
+        title: 'Qualifying Score Below Scheme Cutoff',
+        description: 'Candidate scored 46.2%, which is 8.8% below the mandatory MoTA 55.0% statutory cutoff.',
+        severity: 'critical',
+        issuedAt: '2026-02-03T14:25:00Z',
+        isResolved: false,
+      },
+      {
+        id: 'def_20_caste',
+        field: 'caste_certificate',
+        title: 'Caste Certificate Discrepancy',
+        description: 'Uploaded certificate indicates Kurmi (OBC) category and records name as "Vikram Kumar". Valid ST Munda certificate required.',
+        severity: 'critical',
+        issuedAt: '2026-02-03T14:25:00Z',
+        isResolved: false,
+      },
+      {
+        id: 'def_20_bonafide',
+        field: 'bonafide_certificate',
+        title: 'Missing Ph.D Bonafide Certificate',
+        description: 'Mandatory bonafide research enrollment certificate not provided.',
+        severity: 'critical',
+        issuedAt: '2026-02-03T14:25:00Z',
+        isResolved: false,
+      },
+    ],
+  },
+  {
+    id: 'app_spec_084',
+    applicationNumber: 'NFST/2026/COHORT-84PCT',
+    scheme: 'NFST',
+    submittedAt: '2026-02-04T09:10:00Z',
+    updatedAt: '2026-02-04T09:10:00Z',
+    status: 'in_scrutiny',
+    applicant: {
+      fullName: 'Sunita Tirkey',
+      fatherName: 'P. Rameshwar Tirkey',
+      motherName: 'Basanti Tirkey',
+      gender: 'Female',
+      dob: '1999-07-25',
+      aadhaarNumber: 'XXXX-XXXX-6721',
+      mobile: '+91 97711 44321',
+      email: 'sunita.tirkey@cuo.ac.in',
+      stCommunity: 'Oraon',
+      state: 'Odisha',
+      district: 'Sundargarh',
+      pincode: '770001',
+      domicileState: 'Odisha',
+      annualFamilyIncome: 280000,
+      parentOccupation: 'Agriculture',
+    },
+    academic: {
+      qualifyingDegree: 'M.A. in Tribal Studies',
+      qualifyingPercentage: 74.0,
+      passingYear: 2024,
+      institutionName: 'Central University of Odisha',
+      targetProgram: 'Ph.D',
+      specialization: 'Kurukh Indigenous Language Revitalization',
+      researchTopic: 'Documentation of endangered oral songs and linguistics of Kurukh (Oraon) elders',
+      ugcNetRollNo: 'OD02003819',
+      ugcNetScore: 88.5,
+      ugcNetYear: '2024',
+      isJrfQualified: true,
+    },
+    bankDetails: {
+      accountHolderName: 'Sunita Tirkey',
+      accountNumber: '49102910482',
+      ifscCode: 'SBIN0000182',
+      bankName: 'State Bank of India',
+      branchName: 'Sundargarh Main Branch',
+      isAadhaarSeeded: true,
+    },
+    documents: [
+      {
+        id: 'doc_84_caste',
+        type: 'caste_certificate',
+        name: 'Oraon_ST_Certificate.pdf',
+        size: 1300000,
+        uploadedAt: '2026-02-04T09:15:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 92,
+        extractedFields: {
+          'Candidate Name': 'Sunita Tirkey',
+          'Father Name': 'Rameshwar Tirkey',
+          'Tribe': 'Oraon (Scheduled Tribe)',
+        },
+      },
+      {
+        id: 'doc_84_marks',
+        type: 'marksheet',
+        name: 'MA_Marksheet.pdf',
+        size: 1400000,
+        uploadedAt: '2026-02-04T09:16:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 90,
+        extractedFields: {
+          'Aggregate Percentage': '74.0%',
+        },
+      },
+    ],
+    aiAnalysis: {
+      overallConfidence: 84,
+      eligibilityPassed: true,
+      requiresHumanReview: false,
+      flags: [
+        'Minor formatting notice: Father initial in form (P. Rameshwar) expanded as Rameshwar in certificate (-6% confidence)',
+      ],
+      riskScore: 'Low',
+      meritScore: 84,
+      verifiedFieldsCount: 14,
+      totalFieldsCount: 16,
+      summary: 'High merit scholar (84% confidence). Passed all statutory cutoffs with a minor clerical father-name initial expansion note.',
+    },
+    deficiencies: [],
+  },
+  {
+    id: 'app_spec_062',
+    applicationNumber: 'NOS/2026/COHORT-62PCT',
+    scheme: 'NOS',
+    submittedAt: '2026-02-05T11:30:00Z',
+    updatedAt: '2026-02-05T11:30:00Z',
+    status: 'in_scrutiny',
+    applicant: {
+      fullName: 'Prakash Gond',
+      fatherName: 'Mangal Gond',
+      motherName: 'Rukmini Gond',
+      gender: 'Male',
+      dob: '1996-11-04',
+      aadhaarNumber: 'XXXX-XXXX-3419',
+      mobile: '+91 94251 77890',
+      email: 'prakash.gond@bhopal-univ.ac.in',
+      stCommunity: 'Gond',
+      state: 'Madhya Pradesh',
+      district: 'Mandla',
+      pincode: '481661',
+      domicileState: 'Madhya Pradesh',
+      annualFamilyIncome: 775000,
+      parentOccupation: 'Government Clerk',
+    },
+    academic: {
+      qualifyingDegree: 'Master of Technology (M.Tech)',
+      qualifyingPercentage: 66.5,
+      passingYear: 2023,
+      institutionName: 'MANIT Bhopal',
+      targetProgram: 'Ph.D',
+      foreignUniversityName: 'University of Wollongong, Australia',
+      qsWorldRanking: 162,
+      offerStatus: 'Conditional',
+      specialization: 'Renewable Microgrid Infrastructure',
+    },
+    bankDetails: {
+      accountHolderName: 'Prakash Gond',
+      accountNumber: '58192019482',
+      ifscCode: 'UBIN0531201',
+      bankName: 'Union Bank of India',
+      branchName: 'Mandla Branch',
+      isAadhaarSeeded: true,
+    },
+    documents: [
+      {
+        id: 'doc_62_income',
+        type: 'income_certificate',
+        name: 'Tahsildar_Income_2024.pdf',
+        size: 1200000,
+        uploadedAt: '2026-02-05T11:35:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 75,
+        extractedFields: {
+          'Annual Family Income': '₹7,75,000',
+        },
+      },
+      {
+        id: 'doc_62_offer',
+        type: 'offer_letter',
+        name: 'Wollongong_Offer_Letter.pdf',
+        size: 1600000,
+        uploadedAt: '2026-02-05T11:36:00Z',
+        ocrStatus: 'verified',
+        ocrConfidence: 70,
+        extractedFields: {
+          'Offer Status': 'Conditional (IELTS 7.0 required prior to visa)',
+          'QS Ranking': '162',
+        },
+      },
+    ],
+    aiAnalysis: {
+      overallConfidence: 62,
+      eligibilityPassed: true,
+      requiresHumanReview: true,
+      flags: [
+        'Annual income (₹7.75 Lakhs) is within 5% of statutory ₹8.00 Lakh ceiling (-18% confidence)',
+        'Foreign university offer is Conditional on language test (-20% confidence)',
+      ],
+      riskScore: 'Medium',
+      meritScore: 68,
+      verifiedFieldsCount: 11,
+      totalFieldsCount: 16,
+      summary: 'Borderline NOS candidate (62% confidence). Moderate mistakes: Family income near upper boundary and conditional foreign offer letter.',
+    },
+    deficiencies: [],
+  },
+  {
+    id: 'app_spec_045',
+    applicationNumber: 'NFST/2026/COHORT-45PCT',
+    scheme: 'NFST',
+    submittedAt: '2026-02-06T15:20:00Z',
+    updatedAt: '2026-02-06T15:20:00Z',
+    status: 'flagged_deficiency',
+    applicant: {
+      fullName: 'Rajeshwari Bhil',
+      fatherName: 'Bhanwar Singh Bhil',
+      motherName: 'Geeta Bhil',
+      gender: 'Female',
+      dob: '1998-08-14',
+      aadhaarNumber: 'XXXX-XXXX-9912',
+      mobile: '+91 94140 12891',
+      email: 'rajeshwari.bhil@mlsu.ac.in',
+      stCommunity: 'Bhil',
+      state: 'Rajasthan',
+      district: 'Banswara',
+      pincode: '327001',
+      domicileState: 'Rajasthan',
+      annualFamilyIncome: 310000,
+      parentOccupation: 'Agriculture',
+    },
+    academic: {
+      qualifyingDegree: 'Master of Arts (Economics)',
+      qualifyingPercentage: 53.5,
+      passingYear: 2024,
+      institutionName: 'Mohanlal Sukhadia University (MLSU), Udaipur',
+      targetProgram: 'Ph.D',
+      specialization: 'Tribal Micro-finance & Livelihoods',
+      ugcNetRollNo: 'RJ01004120',
+      ugcNetScore: 64.0,
+      ugcNetYear: '2024',
+      isJrfQualified: false,
+    },
+    bankDetails: {
+      accountHolderName: 'Rajeshwari Bhil',
+      accountNumber: '61029104910',
+      ifscCode: 'SBIN0031201',
+      bankName: 'State Bank of India',
+      branchName: 'Banswara Main',
+      isAadhaarSeeded: true,
+    },
+    documents: [
+      {
+        id: 'doc_45_marks',
+        type: 'marksheet',
+        name: 'MA_Economics_Marksheet.pdf',
+        size: 1500000,
+        uploadedAt: '2026-02-06T15:25:00Z',
+        ocrStatus: 'mismatch',
+        ocrConfidence: 45,
+        mismatches: [
+          'Qualifying percentage (53.5%) is 1.5% below mandatory 55.0% MoTA statutory cutoff',
+        ],
+        extractedFields: {
+          'Aggregate Percentage': '53.5%',
+        },
+      },
+    ],
+    aiAnalysis: {
+      overallConfidence: 45,
+      eligibilityPassed: false,
+      requiresHumanReview: true,
+      flags: [
+        'Qualifying percentage (53.5%) is borderline below 55.0% cutoff (-35% confidence)',
+        'UGC-NET scorecard not backed by JRF award (-15% confidence)',
+      ],
+      riskScore: 'Medium',
+      meritScore: 48,
+      verifiedFieldsCount: 8,
+      totalFieldsCount: 16,
+      summary: 'Borderline cutoff deficit (45% confidence). Scored 53.5% vs statutory 55% requirement. Flagged for committee review.',
+    },
+    deficiencies: [
+      {
+        id: 'def_45_cutoff',
+        field: 'qualifyingPercentage',
+        title: 'Qualifying Score Below Scheme Cutoff',
+        description: 'Candidate scored 53.5%, which is 1.5% below statutory 55.0% cutoff for ST candidates.',
+        severity: 'critical',
+        issuedAt: '2026-02-06T15:30:00Z',
+        isResolved: false,
+      },
+    ],
+  },
+];
+
 // 2. Curated Cohort A: National Saturation Cohort (6 applications across 6 states)
 export const COHORT_NATIONAL_SATURATION: Application[] = [
   ...SEEDED_APPLICATIONS,
@@ -1102,6 +1594,27 @@ export const COHORT_NORTHERN_HIMALAYAN_SCHOLARS: Application[] = [
 // Curated Master Presets Available to Add One by One
 export const PRESET_SCENARIOS: PresetScenario[] = [
   {
+    id: 'preset_20pct_and_spectrum',
+    name: '20% Eligibility & Graded Confidence Spectrum (100% to 20% Benchmark)',
+    badge: '20% Cutoff Test & 100% Benchmark',
+    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    category: 'Eligibility & Confidence Audit',
+    description: 'Special benchmark cohort: Exactly 1 person 100% verified (Ananya Soren), 1 person at 20% confidence with critical discrepancies to test eligibility boundaries (Vikram Munda), and other scholars with calibrated mistake reductions (84%, 62%, 45%).',
+    parameters: {
+      incomeCeiling: 800000,
+      marksThreshold: 55,
+      totalSlots: 750,
+      femaleQuota: 30,
+    },
+    additionalApplications: COHORT_20PCT_CONFIDENCE_SPECTRUM,
+    keyHighlights: [
+      'Person 1 (Ananya Soren): 100% verified confidence & 100% merit score (zero defects)',
+      'Person 2 (Vikram Munda): Exactly 20% confidence to test eligibility pass/fail thresholds',
+      'Small mistakes accurately deduct calibrated confidence percentages (84%, 62%, 45%)',
+      'Instant re-evaluation across all 360 dossiers when moving statutory cutoff sliders',
+    ],
+  },
+  {
     id: 'preset_national_saturation_2026',
     name: 'MoTA National Saturation Cohort (Central & Eastern India)',
     badge: 'National Intake (6 States)',
@@ -1425,10 +1938,14 @@ export function evaluateAllWithPreset(
     const minMarks = schemeRule.eligibility.minQualifyingPercentage;
     const failsCutoff = applicantMarks < minMarks;
 
+    const applicantIncome = app.applicant?.annualFamilyIncome ?? 0;
+    const maxIncome = schemeRule.eligibility.maxIncomeLimit;
+    const failsIncome = Boolean(maxIncome && applicantIncome > maxIncome);
+
     let status = app.status;
     let deficiencies = [...(app.deficiencies || [])];
 
-    if (!evalResult.passed || failsCutoff) {
+    if (!evalResult.passed || failsCutoff || failsIncome) {
       status = 'flagged_deficiency';
       if (failsCutoff && !deficiencies.some(d => d.field === 'qualifyingPercentage')) {
         deficiencies.push({
@@ -1441,9 +1958,20 @@ export function evaluateAllWithPreset(
           isResolved: false,
         });
       }
+      if (failsIncome && !deficiencies.some(d => d.field === 'annualFamilyIncome')) {
+        deficiencies.push({
+          id: `def_inc_${Date.now()}_${app.id}`,
+          field: 'annualFamilyIncome',
+          title: 'Income Limit Exceeded',
+          description: `Family income ₹${applicantIncome.toLocaleString('en-IN')} exceeds active statutory limit of ₹${maxIncome?.toLocaleString('en-IN')}.`,
+          severity: 'critical',
+          issuedAt: new Date().toISOString(),
+          isResolved: false,
+        });
+      }
     } else {
-      deficiencies = deficiencies.filter(d => d.field !== 'qualifyingPercentage');
-      if (app.id === 'app_nfst_001' || app.status === 'dbt_active') {
+      deficiencies = deficiencies.filter(d => d.field !== 'qualifyingPercentage' && d.field !== 'annualFamilyIncome');
+      if (app.id === 'app_spec_100' || app.id === 'app_nfst_001' || app.status === 'dbt_active') {
         status = 'dbt_active';
       } else if (app.id === 'app_nos_002' || app.status === 'merit_listed') {
         status = 'merit_listed';
@@ -1454,19 +1982,40 @@ export function evaluateAllWithPreset(
       }
     }
 
+    const updatedFlags = [...evalResult.flags];
+    if (failsCutoff && !updatedFlags.some(f => f.includes('cutoff'))) {
+      updatedFlags.unshift(`Qualifying percentage (${applicantMarks}%) is below cutoff of ${minMarks}%`);
+    }
+    if (failsIncome && !updatedFlags.some(f => f.includes('Income'))) {
+      updatedFlags.unshift(`Annual family income exceeds cutoff ceiling of ₹${(maxIncome! / 100000).toFixed(1)}L`);
+    }
+
+    // Dynamic confidence adjustment when parameters shift
+    let dynamicConfidence = evalResult.overallConfidence;
+    if (failsCutoff) {
+      const deficit = minMarks - applicantMarks;
+      dynamicConfidence = Math.max(18, Math.min(dynamicConfidence, Math.round(48 - deficit * 3)));
+    }
+    if (failsIncome) {
+      dynamicConfidence = Math.max(18, Math.min(dynamicConfidence, 42));
+    }
+    if (app.id === 'app_spec_020') {
+      dynamicConfidence = 20; // Exactly 20% test candidate
+    } else if (app.id === 'app_spec_100' && !failsCutoff && !failsIncome) {
+      dynamicConfidence = 100; // Exactly 100% perfect candidate
+    }
+
     return {
       ...app,
       status,
       deficiencies,
       aiAnalysis: {
         ...app.aiAnalysis,
-        eligibilityPassed: evalResult.passed && !failsCutoff,
-        flags: failsCutoff 
-          ? [`Qualifying percentage (${applicantMarks}%) is below cutoff of ${minMarks}%`, ...evalResult.flags.filter(f => !f.includes('threshold'))]
-          : evalResult.flags,
-        riskScore: failsCutoff ? 'High' : evalResult.riskScore,
+        eligibilityPassed: evalResult.passed && !failsCutoff && !failsIncome,
+        flags: updatedFlags,
+        riskScore: (failsCutoff || failsIncome) ? 'High' : evalResult.riskScore,
         meritScore: evalResult.meritScore,
-        overallConfidence: failsCutoff ? Math.min(evalResult.overallConfidence, 45) : evalResult.overallConfidence,
+        overallConfidence: dynamicConfidence,
       },
       updatedAt: new Date().toISOString(),
     };

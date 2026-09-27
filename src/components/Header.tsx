@@ -5,7 +5,6 @@ import {
   Download, 
   ShieldCheck, 
   UserCheck, 
-  Sparkles, 
   RefreshCw, 
   Languages, 
   Smartphone,
@@ -32,7 +31,7 @@ interface HeaderProps {
   lastSyncedText: string;
   isSyncing: boolean;
   onManualSync: () => void;
-  onOpenDemoScenarios: () => void;
+  onOpenDemoScenarios?: () => void;
   lang?: LanguageCode;
   onLanguageChange: (lang: LanguageCode) => void;
   currentUser?: AuthUser | null;
@@ -119,14 +118,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-950">
+              <h1 className="text-sm sm:text-base font-bold tracking-wide text-emerald-950 font-sans">
                 {t('portalName')}
               </h1>
-              <span className="bg-emerald-50 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
+              <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
                 {t('versionBadge')}
               </span>
             </div>
-            <p className="text-xs text-emerald-800/80 font-medium hidden sm:block">
+            <p className="text-[11px] text-emerald-800/80 font-medium hidden sm:block">
               {t('portalSubtitle')}
             </p>
           </div>
@@ -220,18 +219,6 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
-
-          {/* Quick Demo Persona Launcher */}
-          <button
-            id="demo-scenarios-btn"
-            type="button"
-            onClick={onOpenDemoScenarios}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition cursor-pointer"
-            title="Load realistic candidate personas and test cases"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden sm:inline">{t('demoScenarios')}</span>
-          </button>
 
           {/* Offline Mode Simulator Toggle */}
           <button

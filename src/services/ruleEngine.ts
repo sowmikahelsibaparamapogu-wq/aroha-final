@@ -283,53 +283,57 @@ export function evaluateApplication(
   const hasCriticalDeficiency = deficiencies.some((d) => d.severity === 'critical');
 
   // Rigorous Confidence Score Calculation:
-  // Must judge carefully after submission. Never give 99% or high confidence to wrong applications!
-  let evaluatedConfidence = 98;
+  // Starts at pristine 100%. Small mistakes deduct calibrated percentage accurately.
+  let evaluatedConfidence = 100;
 
-  // Penalize missing mandatory documents: -25% each
+  // Penalize missing mandatory documents: -20% each
   const missingDocsCount = deficiencies.filter(d => d.title.toLowerCase().includes('missing')).length;
-  evaluatedConfidence -= missingDocsCount * 25;
+  evaluatedConfidence -= missingDocsCount * 20;
 
   // Penalize document mismatches & OCR errors:
   const mismatchDocs = documents.filter(d => d.ocrStatus === 'mismatch' || (d.mismatches && d.mismatches.length > 0));
   for (const mDoc of mismatchDocs) {
     const mismatchCount = (mDoc.mismatches && mDoc.mismatches.length > 0) ? mDoc.mismatches.length : 1;
-    evaluatedConfidence -= Math.max(30, mismatchCount * 18);
+    // Calibrated deduction for small mistake vs severe mismatch
+    evaluatedConfidence -= Math.min(45, mismatchCount * 12);
   }
 
-  // Penalize eligibility failures:
+  // Penalize statutory eligibility failures:
   if (marks < ruleConfig.eligibility.minQualifyingPercentage) {
-    evaluatedConfidence -= 32;
+    const marksDeficit = ruleConfig.eligibility.minQualifyingPercentage - marks;
+    // Scale penalty based on deficit size (small deficit = -18%, severe deficit = -38%)
+    evaluatedConfidence -= Math.min(40, 15 + Math.round(marksDeficit * 3));
   }
 
   if (ruleConfig.scheme === 'NOS') {
     const income = applicant?.annualFamilyIncome || 0;
     if (ruleConfig.eligibility.maxIncomeLimit && income > ruleConfig.eligibility.maxIncomeLimit) {
-      evaluatedConfidence -= 35;
+      const incomeDeficit = (income - ruleConfig.eligibility.maxIncomeLimit) / 100000;
+      evaluatedConfidence -= Math.min(40, 20 + Math.round(incomeDeficit * 5));
     }
     if (ruleConfig.eligibility.requiresUnconditionalOffer && academic?.offerStatus === 'Conditional') {
-      evaluatedConfidence -= 25;
-    }
-    if (ruleConfig.eligibility.maxForeignUniversityQsRank && (academic?.qsWorldRanking || 0) > ruleConfig.eligibility.maxForeignUniversityQsRank) {
       evaluatedConfidence -= 20;
     }
+    if (ruleConfig.eligibility.maxForeignUniversityQsRank && (academic?.qsWorldRanking || 0) > ruleConfig.eligibility.maxForeignUniversityQsRank) {
+      evaluatedConfidence -= 18;
+    }
   }
 
-  // Penalize other discrepancies & flags:
-  if (flags.length > 0) {
-    evaluatedConfidence -= (flags.length * 6);
+  // Penalize small borderline flags (small mistakes: -4% per flag)
+  const minorFlags = flags.filter(f => !f.toLowerCase().includes('missing') && !f.toLowerCase().includes('below') && !f.toLowerCase().includes('exceeds'));
+  evaluatedConfidence -= (minorFlags.length * 4);
+
+  // If application has severe multiple deficiencies, clamp down towards 20%
+  if (hasCriticalDeficiency && mismatchDocs.length > 0) {
+    evaluatedConfidence = Math.min(evaluatedConfidence, 35);
+  } else if (hasCriticalDeficiency) {
+    evaluatedConfidence = Math.min(evaluatedConfidence, 55);
+  } else if (minorFlags.length > 0) {
+    evaluatedConfidence = Math.min(evaluatedConfidence, 88);
   }
 
-  // Strict Capping: If application has critical deficiencies or mismatches, cap confidence heavily
-  if (hasCriticalDeficiency || mismatchDocs.length > 0) {
-    // Wrong applications capped strictly at low confidence (15% - 48%)
-    evaluatedConfidence = Math.min(evaluatedConfidence, 45);
-  } else if (flags.length > 0) {
-    evaluatedConfidence = Math.min(evaluatedConfidence, 74);
-  }
-
-  // Clamp overall confidence strictly between 15% and 99%
-  const overallConfidence = Math.max(15, Math.min(99, Math.round(evaluatedConfidence)));
+  // Clamp overall confidence strictly between 15% and 100%
+  const overallConfidence = Math.max(15, Math.min(100, Math.round(evaluatedConfidence)));
 
   const isBorderline = overallConfidence < ruleConfig.thresholds.humanReviewConfidenceThreshold || flags.length > 0;
   const requiresHumanReview = hasCriticalDeficiency || isBorderline;

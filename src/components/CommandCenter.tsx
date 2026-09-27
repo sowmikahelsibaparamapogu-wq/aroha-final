@@ -28,6 +28,8 @@ interface CommandCenterProps {
   activePresetName?: string | null;
   onOpenPresetModal?: () => void;
   onResetToPreUploadState?: () => void;
+  activeCutoff?: number;
+  activeIncome?: number;
 }
 
 export const CommandCenter: React.FC<CommandCenterProps> = ({
@@ -39,16 +41,26 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   activePresetName,
   onOpenPresetModal,
   onResetToPreUploadState,
+  activeCutoff,
+  activeIncome,
 }) => {
   const [selectedScheme, setSelectedScheme] = useState<'ALL' | SchemeType>('ALL');
   const [lastRefreshed, setLastRefreshed] = useState<string>('Just now');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Quick Parameter Tuning State
-  const [quickIncome, setQuickIncome] = useState<number>(800000);
-  const [quickCutoff, setQuickCutoff] = useState<number>(55);
+  const [quickIncome, setQuickIncome] = useState<number>(() => activeIncome ?? 800000);
+  const [quickCutoff, setQuickCutoff] = useState<number>(() => activeCutoff ?? 55);
   const [quickSlots, setQuickSlots] = useState<number>(750);
   const [quickFemaleQuota, setQuickFemaleQuota] = useState<number>(30);
+
+  React.useEffect(() => {
+    if (activeCutoff !== undefined) setQuickCutoff(activeCutoff);
+  }, [activeCutoff]);
+
+  React.useEffect(() => {
+    if (activeIncome !== undefined) setQuickIncome(activeIncome);
+  }, [activeIncome]);
 
   const filteredApps = useMemo(() => {
     if (selectedScheme === 'ALL') return applications;
@@ -208,110 +220,99 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         </div>
       )}
 
-      {/* 6 Core Live KPI Tiles - COLORFUL, NOT BLACK, BIG FONT, ZERO DESCRIPTION */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Total Pool */}
-        <div className="bg-gradient-to-br from-indigo-50 via-white to-blue-50 rounded-3xl p-5 border-2 border-indigo-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-indigo-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">Total Pool</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-              <Users className="w-4 h-4" />
+      {/* 4 Core Live KPI Tiles - 4 BOXES NOT IN LINE (2x2 GRID), BIG CARDS, SMALL FONT, LIGHT LOGOS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Box 1: Total Ingested Pool */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Total National Pool
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 border border-slate-200/60 flex items-center justify-center opacity-60">
+              <Users className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-3xl sm:text-4xl font-black text-indigo-700">
-            {stats.total.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-indigo-600 mt-2 flex items-center gap-1">
-            {stats.total === 0 ? (
-              <span className="text-amber-700 font-bold">Awaiting preset</span>
-            ) : (
-              <>
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>{stats.total} Ingested</span>
-              </>
-            )}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              {stats.total.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Applicants</span>
+            </div>
+            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+              {stats.total === 0 ? (
+                <span className="text-amber-600 font-semibold">Blank intake mode (Awaiting preset)</span>
+              ) : (
+                <>
+                  <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />
+                  <span>{stats.total} dossiers ingested across India's 36 States & UTs</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Eligible */}
-        <div className="bg-gradient-to-br from-emerald-50 via-white to-teal-50 rounded-3xl p-5 border-2 border-emerald-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-emerald-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">Eligible</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-4 h-4" />
+        {/* Box 2: Eligible Candidates */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Eligible Candidates
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-emerald-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-3xl sm:text-4xl font-black text-emerald-700">
-            {stats.eligible.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-emerald-600 mt-2">
-            {stats.total > 0
-              ? `${((stats.eligible / stats.total) * 100).toFixed(0)}% compliance`
-              : 'Awaiting preset'}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-emerald-700">
+              {stats.eligible.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Cleared</span>
+            </div>
+            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+              <span>
+                {stats.total > 0
+                  ? `${((stats.eligible / stats.total) * 100).toFixed(1)}% meet statutory cutoff (${quickCutoff}%) & income limits`
+                  : 'Awaiting preset evaluation'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Pending Scrutiny */}
-        <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-3xl p-5 border-2 border-amber-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-amber-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">Pending</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-              <Clock className="w-4 h-4" />
+        {/* Box 3: PFMS Direct Benefit Transfer Active */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              PFMS Direct Benefit Disbursal
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-indigo-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
+              <Award className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-3xl sm:text-4xl font-black text-amber-600">
-            {stats.pending.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-amber-600 mt-2">
-            {stats.total === 0 ? 'Intake Staging' : 'In Verification'}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-indigo-900">
+              {stats.selected.toLocaleString()} <span className="text-sm font-semibold text-slate-500">Scholars Active</span>
+            </div>
+            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />
+              <span>100% verified DBT pipeline • ₹37,000/mo JRF sanction</span>
+            </div>
           </div>
         </div>
 
-        {/* Sanctioned */}
-        <div className="bg-gradient-to-br from-violet-50 via-white to-purple-50 rounded-3xl p-5 border-2 border-violet-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-violet-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">Sanctioned</span>
-            <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600">
-              <Award className="w-4 h-4" />
+        {/* Box 4: Deficiencies & Review Queue */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[145px]">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Deficiencies & Scrutiny Action
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-slate-50 text-amber-500/60 border border-slate-200/60 flex items-center justify-center opacity-60">
+              <AlertTriangle className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-3xl sm:text-4xl font-black text-violet-700">
-            {stats.selected.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-violet-600 mt-2">
-            {stats.total > 0 ? 'Allocated Slots' : 'Awaiting preset'}
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div className="bg-gradient-to-br from-cyan-50 via-white to-sky-50 rounded-3xl p-5 border-2 border-cyan-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-cyan-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">Rejected</span>
-            <div className="w-8 h-8 rounded-xl bg-cyan-100 flex items-center justify-center text-cyan-600">
-              <XCircle className="w-4 h-4" />
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-amber-700">
+              {(stats.pending + stats.rejected).toLocaleString()} <span className="text-sm font-semibold text-slate-500">Under Review</span>
             </div>
-          </div>
-          <div className="text-3xl sm:text-4xl font-black text-cyan-700">
-            {stats.rejected.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-cyan-600 mt-2">
-            {stats.total > 0 ? 'Audit Preserved' : 'Intake clean'}
-          </div>
-        </div>
-
-        {/* High Risk Flags */}
-        <div className="bg-gradient-to-br from-rose-50 via-white to-red-50 rounded-3xl p-5 border-2 border-rose-200 shadow-md hover:shadow-lg transition">
-          <div className="flex items-center justify-between text-rose-700 mb-2">
-            <span className="text-xs font-black uppercase tracking-wider">High Risk</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
-              <AlertTriangle className="w-4 h-4" />
+            <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+              <span>{stats.pending} flagged with discrepancies / below cutoff, {stats.rejected} rejected</span>
             </div>
-          </div>
-          <div className="text-3xl sm:text-4xl font-black text-rose-600">
-            {stats.highRisk.toLocaleString()}
-          </div>
-          <div className="text-xs font-black text-rose-600 mt-2">
-            {stats.total > 0 ? 'Human Audit' : 'Scan pending'}
           </div>
         </div>
       </div>
